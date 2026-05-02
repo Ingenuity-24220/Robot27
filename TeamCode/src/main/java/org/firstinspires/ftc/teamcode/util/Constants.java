@@ -208,8 +208,8 @@ public class Constants {
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pathConstraints(pathConstraints)
                 .mecanumDrivetrain(driveConstants)
-                .driveEncoderLocalizer(localizerConstants)
-                //.pinpointLocalizer(localizerConstants_pinpoint)
+//                .driveEncoderLocalizer(localizerConstants)
+                .pinpointLocalizer(localizerConstants_pinpoint)
                 .build();
     }
 }

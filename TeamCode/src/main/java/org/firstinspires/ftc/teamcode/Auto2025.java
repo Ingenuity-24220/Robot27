@@ -6,14 +6,10 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.util.Constants;
 import org.firstinspires.ftc.teamcode.util.Robot;
 import org.firstinspires.ftc.teamcode.util.RobotPath;
@@ -120,8 +116,6 @@ public class Auto2025 extends OpMode{
     RobotPath[] pathChain_selected;
 
 
-    GoBildaPinpointDriver odo;
-
     int path_index = 0;
     boolean isCompleted = true;
 
@@ -140,9 +134,7 @@ public class Auto2025 extends OpMode{
 
     @Override
     public void init(){
-
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-
+        
         telemetry.setDisplayFormat(Telemetry.DisplayFormat.HTML);
 
         robot = new Robot(hardwareMap, telemetry, gamepad1, gamepad2);
@@ -224,13 +216,11 @@ public class Auto2025 extends OpMode{
     {
         follower.update();
 
-        odo.update();
-        Pose2D pos_tt = odo.getPosition();
+        Pose pose_tt = follower.getPose();
         telemetry.addLine("path index=" + path_index);
-        telemetry.addData("odo xxxxx", pos_tt.getX(DistanceUnit.INCH));
-        telemetry.addData("odo yyyyy", pos_tt.getY(DistanceUnit.INCH));
-        telemetry.addData("odo heading", pos_tt.getHeading(AngleUnit.DEGREES));
-        //telemetry.update();
+        telemetry.addData("pose x", pose_tt.getX());
+        telemetry.addData("pose y", pose_tt.getY());
+        telemetry.addData("pose heading", Math.toDegrees(pose_tt.getHeading()));
         telemetry.update();
 
         if(path_index >= pathChain_selected.length) return;
