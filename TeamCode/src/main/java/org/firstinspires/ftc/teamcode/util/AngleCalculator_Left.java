@@ -47,6 +47,8 @@ public class AngleCalculator_Left {
             region_left = 4;
             //backwards
         }
+        //region_left= (int) java.lang.Math.ceil((((angle+45)%360)/90)); WAYYYY more efficient fr fr
         return region_left;
+
     }
 }
