@@ -15,6 +15,12 @@ public class meow extends OpMode {
     DcMotor motorRF;
     DcMotor motorRR;
 
+    int lastMotorLF = 0;
+    int lastMotorLR = 0;
+    int lastMotorRF = 0;
+    int lastMotorRR = 0;
+
+
 //    private ElapsedTime runtime = new ElapsedTime();
 
     @Override
@@ -55,5 +61,27 @@ public class meow extends OpMode {
         motorLR.setPower(LRPower);
         motorRF.setPower(RFPower);
         motorRR.setPower(RRPower);
+
+        telemetry.addData("LF Motor", LFPower);
+        telemetry.addData("LR Motor", LRPower);
+        telemetry.addData("RF Motor", RFPower);
+        telemetry.addData("RR Motor", RRPower);
+
+        telemetry.addData("LF Motor", motorLF.getCurrentPosition());
+        telemetry.addData("LR Motor", motorLR.getCurrentPosition());
+        telemetry.addData("RF Motor", motorRF.getCurrentPosition());
+        telemetry.addData("RR Motor", motorRR.getCurrentPosition());
+
+        telemetry.addData("LF Motor Change", Math.abs(motorLF.getCurrentPosition() - lastMotorLF));
+        telemetry.addData("LR Motor Change", Math.abs(motorLR.getCurrentPosition() - lastMotorLR));
+        telemetry.addData("RF Motor Change", Math.abs(motorRF.getCurrentPosition() - lastMotorRF));
+        telemetry.addData("RR Motor Change", Math.abs(motorRR.getCurrentPosition() - lastMotorRR));
+
+        lastMotorLF = motorLF.getCurrentPosition();
+        lastMotorLR = motorLR.getCurrentPosition();
+        lastMotorRF = motorRF.getCurrentPosition();
+        lastMotorRR = motorRR.getCurrentPosition();
+
+        telemetry.update();
     }
 }
