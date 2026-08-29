@@ -4,8 +4,19 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
+
+//import com.qualcomm.robotcore.hardware.Gamepad;
+//import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp(name="meow")
 public class meow extends OpMode {
@@ -20,6 +31,10 @@ public class meow extends OpMode {
     int lastMotorRF = 0;
     int lastMotorRR = 0;
 
+    Limelight3A limelight;
+
+    IMU imu;
+
 
 //    private ElapsedTime runtime = new ElapsedTime();
 
@@ -29,9 +44,23 @@ public class meow extends OpMode {
         motorLR = hardwareMap.get(DcMotor.class, "motorLR"); // left rear
         motorRF = hardwareMap.get(DcMotor.class, "motorRF"); // right front
         motorRR = hardwareMap.get(DcMotor.class, "motorRR"); // right rear
+        imu = hardwareMap.get(IMU.class, "imu");
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
         motorRF.setDirection(DcMotorSimple.Direction.REVERSE);
         motorRR.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        limelight.setPollRateHz(100);
+        limelight.start();
+
+        limelight.pipelineSwitch(0); // AKA detection
+
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.RIGHT;
+
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(logoDirection, usbDirection));
+
+        imu.initialize(parameters);
     }
 
     @Override
@@ -55,6 +84,18 @@ public class meow extends OpMode {
             LRPower /= max;
             RFPower /= max;
             RRPower /= max;
+        }
+
+        LLResult result = limelight.getLatestResult();
+        double robotYaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        limelight.updateRobotOrientation(robotYaw);
+        if (result != null && result.isValid()) {
+            Pose3D botpose_mt2 = result.getBotpose_MT2();
+            if (botpose_mt2 != null) {
+                double x = botpose_mt2.getPosition().x;
+                double y = botpose_mt2.getPosition().y;
+                telemetry.addData("MT2 Location:", "(" + x + ", " + y + ")");
+            }
         }
 
         motorLF.setPower(LFPower);
