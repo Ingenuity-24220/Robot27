@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -14,6 +16,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
+
+import java.util.Locale;
 
 //import com.qualcomm.robotcore.hardware.Gamepad;
 //import com.qualcomm.robotcore.util.ElapsedTime;
@@ -34,6 +38,7 @@ public class meow extends OpMode {
     Limelight3A limelight;
 
     IMU imu;
+    TelemetryManager panelsTelemetry;
 
 
 //    private ElapsedTime runtime = new ElapsedTime();
@@ -46,6 +51,7 @@ public class meow extends OpMode {
         motorRR = hardwareMap.get(DcMotor.class, "motorRR"); // right rear
         imu = hardwareMap.get(IMU.class, "imu");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         motorRF.setDirection(DcMotorSimple.Direction.REVERSE);
         motorRR.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -68,7 +74,7 @@ public class meow extends OpMode {
 //      double MAX_POWER = 1.0;
         double axial = -gamepad1.left_stick_y;
         double lateral = gamepad1.left_stick_x;
-        double yaw = gamepad1.right_stick_x;
+        double yaw = -gamepad1.right_stick_x;
 
         double LFPower  = axial + lateral + yaw;
         double RFPower = axial - lateral - yaw;
@@ -86,16 +92,29 @@ public class meow extends OpMode {
             RRPower /= max;
         }
 
-        LLResult result = limelight.getLatestResult();
-        double robotYaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        double rawYaw = imu.getRobotYawPitchRollAngles()
+                .getYaw(AngleUnit.DEGREES);
+
+        double robotYaw = AngleUnit.normalizeDegrees(rawYaw + 180.0);
         limelight.updateRobotOrientation(robotYaw);
+        LLResult result = limelight.getLatestResult();
+
+        panelsTelemetry.addData("IMU yaw sent to MT2", String.format(Locale.US, "%.1f deg", robotYaw));
         if (result != null && result.isValid()) {
+            Pose3D botpose_mt1 = result.getBotpose();
             Pose3D botpose_mt2 = result.getBotpose_MT2();
+
+            panelsTelemetry.addData("MT1 pose", formatPose(botpose_mt1));
+            panelsTelemetry.addData("MT2 pose", formatPose(botpose_mt2));
+
             if (botpose_mt2 != null) {
                 double x = botpose_mt2.getPosition().x;
                 double y = botpose_mt2.getPosition().y;
                 telemetry.addData("MT2 Location:", "(" + x + ", " + y + ")");
             }
+        } else {
+            panelsTelemetry.addData("MT1 pose", "unavailable");
+            panelsTelemetry.addData("MT2 pose", "unavailable");
         }
 
         motorLF.setPower(LFPower);
@@ -123,6 +142,21 @@ public class meow extends OpMode {
         lastMotorRF = motorRF.getCurrentPosition();
         lastMotorRR = motorRR.getCurrentPosition();
 
-        telemetry.update();
+        panelsTelemetry.update(telemetry);
+    }
+
+    private String formatPose(Pose3D pose) {
+        if (pose == null) {
+            return "unavailable";
+        }
+
+        return String.format(
+                Locale.US,
+                "x=%.3f m, y=%.3f m, z=%.3f m, yaw=%.1f deg",
+                pose.getPosition().x,
+                pose.getPosition().y,
+                pose.getPosition().z,
+                pose.getOrientation().getYaw(AngleUnit.DEGREES)
+        );
     }
 }
