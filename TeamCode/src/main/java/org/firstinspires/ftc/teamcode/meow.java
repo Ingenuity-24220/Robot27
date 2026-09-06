@@ -7,21 +7,22 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
-import com.qualcomm.hardware.limelightvision.LLStatus;
+//import com.qualcomm.hardware.limelightvision.LLResultTypes;
+//import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
+//import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+//import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 
 import java.util.Locale;
 
 //import com.qualcomm.robotcore.hardware.Gamepad;
 //import com.qualcomm.robotcore.util.ElapsedTime;
 
+@SuppressWarnings("unused")
 @TeleOp(name="meow")
 public class meow extends OpMode {
 
@@ -30,10 +31,10 @@ public class meow extends OpMode {
     DcMotor motorRF;
     DcMotor motorRR;
 
-    int lastMotorLF = 0;
-    int lastMotorLR = 0;
-    int lastMotorRF = 0;
-    int lastMotorRR = 0;
+    double currLFPower = 0;
+    double currLRPower = 0;
+    double currRFPower = 0;
+    double currRRPower = 0;
 
     Limelight3A limelight;
 
@@ -76,21 +77,27 @@ public class meow extends OpMode {
         double lateral = gamepad1.left_stick_x;
         double yaw = -gamepad1.right_stick_x;
 
-        double LFPower  = axial + lateral + yaw;
-        double RFPower = axial - lateral - yaw;
-        double LRPower   = axial - lateral + yaw;
-        double RRPower  = axial + lateral - yaw;
+        double targetLFPower = axial + lateral + yaw; // this is what we want to hit
+        double targetRFPower = axial - lateral - yaw;
+        double targetLRPower = axial - lateral + yaw;
+        double targetRRPower = axial + lateral - yaw;
 
-        double max = Math.max(Math.abs(LFPower), Math.abs(LRPower));
-        max = Math.max(max, Math.abs(RFPower));
-        max = Math.max(max, Math.abs(RRPower));
+
+        double max = Math.max(Math.abs(targetLFPower), Math.abs(targetLRPower));
+        max = Math.max(max, Math.abs(targetRFPower));
+        max = Math.max(max, Math.abs(targetRRPower));
 
         if (max > 1.0) {
-            LFPower /= max;
-            LRPower /= max;
-            RFPower /= max;
-            RRPower /= max;
+            targetLFPower /= max;
+            targetLRPower /= max;
+            targetRFPower /= max;
+            targetRRPower /= max;
         }
+
+        currLFPower += (targetLFPower - currLFPower) * 0.05;
+        currLRPower += (targetLRPower - currLRPower) * 0.05;
+        currRFPower += (targetRFPower - currRFPower) * 0.05;
+        currRRPower += (targetRRPower - currRRPower) * 0.05;
 
         double rawYaw = imu.getRobotYawPitchRollAngles()
                 .getYaw(AngleUnit.DEGREES);
@@ -117,30 +124,30 @@ public class meow extends OpMode {
             panelsTelemetry.addData("MT2 pose", "unavailable");
         }
 
-        motorLF.setPower(LFPower);
-        motorLR.setPower(LRPower);
-        motorRF.setPower(RFPower);
-        motorRR.setPower(RRPower);
+        motorLF.setPower(currLFPower);
+        motorLR.setPower(currLRPower);
+        motorRF.setPower(currRFPower);
+        motorRR.setPower(currRRPower);
 
-        telemetry.addData("LF Motor", LFPower);
-        telemetry.addData("LR Motor", LRPower);
-        telemetry.addData("RF Motor", RFPower);
-        telemetry.addData("RR Motor", RRPower);
+        telemetry.addData("Target LF Motor", targetLFPower);
+        telemetry.addData("Target LR Motor", targetLRPower);
+        telemetry.addData("Target RF Motor", targetRFPower);
+        telemetry.addData("Target RR Motor", targetRRPower);
 
-        telemetry.addData("LF Motor", motorLF.getCurrentPosition());
-        telemetry.addData("LR Motor", motorLR.getCurrentPosition());
-        telemetry.addData("RF Motor", motorRF.getCurrentPosition());
-        telemetry.addData("RR Motor", motorRR.getCurrentPosition());
+        telemetry.addData("Curr LF Motor",currLFPower);
+        telemetry.addData("Curr LR Motor", currLRPower);
+        telemetry.addData("Curr RF Motor", currRFPower);
+        telemetry.addData("Curr RR Motor", currRRPower);
 
-        telemetry.addData("LF Motor Change", Math.abs(motorLF.getCurrentPosition() - lastMotorLF));
-        telemetry.addData("LR Motor Change", Math.abs(motorLR.getCurrentPosition() - lastMotorLR));
-        telemetry.addData("RF Motor Change", Math.abs(motorRF.getCurrentPosition() - lastMotorRF));
-        telemetry.addData("RR Motor Change", Math.abs(motorRR.getCurrentPosition() - lastMotorRR));
+//        telemetry.addData("LF Motor Change", Math.abs(motorLF.getCurrentPosition() - lastMotorLF));
+//        telemetry.addData("LR Motor Change", Math.abs(motorLR.getCurrentPosition() - lastMotorLR));
+//        telemetry.addData("RF Motor Change", Math.abs(motorRF.getCurrentPosition() - lastMotorRF));
+//        telemetry.addData("RR Motor Change", Math.abs(motorRR.getCurrentPosition() - lastMotorRR));
 
-        lastMotorLF = motorLF.getCurrentPosition();
-        lastMotorLR = motorLR.getCurrentPosition();
-        lastMotorRF = motorRF.getCurrentPosition();
-        lastMotorRR = motorRR.getCurrentPosition();
+//        lastMotorLF = motorLF.getCurrentPosition();
+//        lastMotorLR = motorLR.getCurrentPosition();
+//        lastMotorRF = motorRF.getCurrentPosition();
+//        lastMotorRR = motorRR.getCurrentPosition();
 
         panelsTelemetry.update(telemetry);
     }
