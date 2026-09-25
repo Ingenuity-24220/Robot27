@@ -8,7 +8,7 @@ public class Intake {
 
     DcMotor motorIntake;
 
-    boolean isReversed = false;
+//    boolean isReversed = false;
 
     public boolean isRunning = false;
     public Intake(HardwareMap hardwareMap) {

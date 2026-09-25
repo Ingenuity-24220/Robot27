@@ -1,9 +1,6 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -141,18 +138,18 @@ public class Drivetrain {
         }
     }
 
-    private String formatPose(Pose3D pose) {
-        if (pose == null) {
-            return "unavailable";
-        }
-
-        return String.format(
-                Locale.US,
-                "x=%.3f m, y=%.3f m, z=%.3f m, yaw=%.1f deg",
-                pose.getPosition().x,
-                pose.getPosition().y,
-                pose.getPosition().z,
-                pose.getOrientation().getYaw(AngleUnit.DEGREES)
-        );
-    }
+//    private String formatPose(Pose3D pose) {
+//        if (pose == null) {
+//            return "unavailable";
+//        }
+//
+//        return String.format(
+//                Locale.US,
+//                "x=%.3f m, y=%.3f m, z=%.3f m, yaw=%.1f deg",
+//                pose.getPosition().x,
+//                pose.getPosition().y,
+//                pose.getPosition().z,
+//                pose.getOrientation().getYaw(AngleUnit.DEGREES)
+//        );
+//    }
 }

@@ -5,17 +5,17 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.hardware.limelightvision.LLResult;
+//import com.qualcomm.robotcore.hardware.DcMotor;
+//import com.qualcomm.robotcore.hardware.DcMotorSimple;
+//import com.qualcomm.hardware.limelightvision.LLResult;
 //import com.qualcomm.hardware.limelightvision.LLResultTypes;
 //import com.qualcomm.hardware.limelightvision.LLStatus;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
+//import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+//import com.qualcomm.robotcore.hardware.IMU;
+//import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+//import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+//import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.teamcode.util.Drivetrain;
 import org.firstinspires.ftc.teamcode.util.Intake;
 import org.firstinspires.ftc.teamcode.util.Localization;
@@ -27,6 +27,7 @@ import java.util.Locale;
 //import com.qualcomm.robotcore.hardware.Gamepad;
 //import com.qualcomm.robotcore.util.ElapsedTime;
 
+@SuppressWarnings("unused")
 @TeleOp(name="meow")
 public class meow extends OpMode {
     TelemetryManager panelsTelemetry;
@@ -48,6 +49,9 @@ public class meow extends OpMode {
     @Override
     public void loop() {
         Gamepad g1 = PanelsGamepad.INSTANCE.getFirstManager().asCombinedFTCGamepad(gamepad1);
+
+        // preferably don't do this but for now as we would like to have the gamepad 2 keep this in
+        @SuppressWarnings("unused")
         Gamepad g2 = PanelsGamepad.INSTANCE.getSecondManager().asCombinedFTCGamepad(gamepad2);
 
         double axial = -g1.left_stick_y;
