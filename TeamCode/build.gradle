@@ -1,4 +1,17 @@
+// Sloth's "Load" plugin: adds the deploySloth task for hot reloading TeamCode
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = "https://repo.dairy.foundation/releases" }
+    }
+    dependencies {
+        classpath "dev.frozenmilk:Load:0.3.2"
+    }
+}
+
 apply plugin: 'com.android.application'
+apply plugin: 'dev.frozenmilk.sinister.sloth.load'
 
 //
 // build.gradle in TeamCode
@@ -19,6 +32,11 @@ apply from: '../build.dependencies.gradle'
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
+    compileSdk 35
+    defaultConfig {
+        minSdk 24
+    }
+
     packagingOptions {
         jniLibs.useLegacyPackaging true
     }
@@ -26,4 +44,5 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
+    implementation "com.bylazar:fullpanels:1.0.18"
 }
