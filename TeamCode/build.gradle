@@ -19,10 +19,9 @@ apply from: '../build.dependencies.gradle'
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
-    compileSdk 35
-    defaultConfig {
-        minSdk 24
-    }
+    // Panels pulls in androidx.core 1.13.1, which requires compileSdk 34 or higher.
+    // The FTC SDK default (build.common.gradle) is 30.
+    compileSdk 34
 
     packagingOptions {
         jniLibs.useLegacyPackaging true
@@ -31,5 +30,5 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
-    implementation "com.bylazar:fullpanels:1.0.13"
+    implementation "com.bylazar:fullpanels:1.0.15"
 }
