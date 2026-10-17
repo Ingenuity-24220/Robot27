@@ -1,6 +1,6 @@
 # Robot27
 
-This is our robot code for 2027. You can see our testing code within the branch robot-testing.
+This is our robot code for 2027.
 
 This main branch is built on the official [FTC Robot Controller SDK](https://github.com/FIRST-Tech-Challenge/FtcRobotController) **v12.0**.
 To pull in a future SDK release:
