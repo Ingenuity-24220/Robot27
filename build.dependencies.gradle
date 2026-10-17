@@ -1,6 +1,5 @@
 repositories {
     maven { url = "https://mymaven.bylazar.com/releases" }
-    maven { url = "https://repo.dairy.foundation/releases" } // Sloth, needed by Panels
     mavenCentral()
     google() // Needed for androidx
 }
