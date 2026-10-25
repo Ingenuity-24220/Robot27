@@ -1,5 +1,7 @@
 repositories {
     maven { url = "https://mymaven.bylazar.com/releases" } // Panels
+    // required by pedro pathing
+    maven { url 'https://repo.dairy.foundation/releases/'}
     mavenCentral()
     google() // Needed for androidx
 }
@@ -16,5 +18,9 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.pedropathing:ftc:2.0.6'
     implementation 'com.pedropathing:telemetry:1.0.0'
+    // pedro pathing
+    implementation 'com.pedropathing:revhub:3.0.2'
+    implementation 'com.pedropathing:tuning:1.0.0'
+    implementation 'com.pedropathing.ivy:pedro:1.1.1'
 }
 
