@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.teamcode.util.Drivetrain;
 import org.firstinspires.ftc.teamcode.util.Intake;
 import org.firstinspires.ftc.teamcode.util.Localization;
+import org.firstinspires.ftc.teamcode.util.Outtake;
 //import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 //import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 
@@ -37,32 +38,35 @@ public class meow extends OpMode {
 
     Localization localizer;
 
+    Outtake outtake;
+
     @Override
     public void init() {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         this.drivetrain = new Drivetrain(hardwareMap, telemetry, panelsTelemetry, false);
         this.intake = new Intake(hardwareMap);
+        this.outtake = new Outtake(hardwareMap, telemetry);
         localizer = new Localization(hardwareMap, telemetry, panelsTelemetry);
         localizer.recalibrateOdometry(true);
     }
 
     @Override
     public void loop() {
-        Gamepad g1 = PanelsGamepad.INSTANCE.getFirstManager().asCombinedFTCGamepad(gamepad1);
+//        Gamepad g1 = PanelsGamepad.INSTANCE.getFirstManager().asCombinedFTCGamepad(gamepad1);
 
         // preferably don't do this but for now as we would like to have the gamepad 2 keep this in
         @SuppressWarnings("unused")
-        Gamepad g2 = PanelsGamepad.INSTANCE.getSecondManager().asCombinedFTCGamepad(gamepad2);
+//        Gamepad g2 = PanelsGamepad.INSTANCE.getSecondManager().asCombinedFTCGamepad(gamepad2);
 
-        double axial = -g1.left_stick_y;
-        double lateral = g1.left_stick_x;
-        double yaw = -g1.right_stick_x;
+        double axial = -gamepad1.left_stick_y;
+        double lateral = gamepad1.left_stick_x;
+        double yaw = -gamepad1.right_stick_x;
 
         drivetrain.drive(axial, lateral, yaw);
 
         telemetry.addData("Intake spinning:", intake.isRunning);
         panelsTelemetry.addData("Intake spinning:", intake.isRunning);
-        if (g1.aWasPressed()) {
+        if (gamepad1.aWasPressed()) {
             if (intake.isRunning) {
                 intake.stop();
             } else {
@@ -70,11 +74,27 @@ public class meow extends OpMode {
             }
         }
 
-        if (g1.bWasPressed()) {
+        if (gamepad1.bWasPressed()) {
+            if (outtake.isRunning) {
+                outtake.stop();
+            } else {
+                outtake.start();
+            }
+        }
+
+        if (gamepad1.xWasPressed()) {
             intake.reverse();
         }
 
-        localizer.runOdometry();
+        if (gamepad2.rightTriggerWasPressed()) {
+            if (intake.isGateOpen) {
+                intake.closeGate();
+            } else {
+                intake.openGate();
+            }
+        }
+
+//        localizer.runOdometry();
 
         telemetry.update();
 

@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
+//import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
 
 import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -16,22 +16,21 @@ public class Outtake {
 
     DcMotor outtakeMotor;
 
+    public boolean isRunning = false;
+
     public Outtake(HardwareMap hardwareMap, Telemetry telemetry/*, TelemetryManager panelsTelemetry*/){
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
         //this.panelsTelemetry = panelsTelemetry;
-        this.outtakeMotor = hardwareMap.get(DcMotor.class, "outtake");
-
+        this.outtakeMotor = hardwareMap.get(DcMotor.class, "outtakeMotor");
     }
-    public void powerUp() {
-        if(outtakeMotor.getPower()<1) {
-            outtakeMotor.setPower(outtakeMotor.getPower() + 0.05);
-        }
+    public void start() {
+        isRunning = true;
+        outtakeMotor.setPower(1);
     }
-    public void powerDown() {
-        if(outtakeMotor.getPower()>-1){
-            outtakeMotor.setPower(outtakeMotor.getPower() - 0.05);
-        }
+    public void stop() {
+        isRunning = false;
+        outtakeMotor.setPower(0);
     }
     public double getPower(){
         return outtakeMotor.getPower();
