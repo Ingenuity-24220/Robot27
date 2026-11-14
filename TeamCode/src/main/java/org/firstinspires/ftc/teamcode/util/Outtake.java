@@ -18,19 +18,25 @@ public class Outtake {
 
     public boolean isRunning = false;
 
-    public Outtake(HardwareMap hardwareMap, Telemetry telemetry/*, TelemetryManager panelsTelemetry*/){
+    public double power = 0.85;
+
+    public Outtake(HardwareMap hardwareMap, Telemetry telemetry, String motorName/*, TelemetryManager panelsTelemetry*/){
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
         //this.panelsTelemetry = panelsTelemetry;
-        this.outtakeMotor = hardwareMap.get(DcMotor.class, "outtakeMotor");
+        this.outtakeMotor = hardwareMap.get(DcMotor.class, motorName);
     }
     public void start() {
         isRunning = true;
-        outtakeMotor.setPower(1);
+        outtakeMotor.setPower(0.85);
     }
     public void stop() {
         isRunning = false;
         outtakeMotor.setPower(0);
+    }
+
+    public void setPower(double power) {
+        this.power = power;
     }
     public double getPower(){
         return outtakeMotor.getPower();
