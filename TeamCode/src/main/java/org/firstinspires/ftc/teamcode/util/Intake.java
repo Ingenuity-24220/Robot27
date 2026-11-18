@@ -28,7 +28,7 @@ public class Intake {
     }
 
     public void start() {
-        motorIntake.setPower(-1);
+        motorIntake.setPower(-.75);
         isRunning = true;
     }
 

@@ -9,8 +9,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class Outtake {
-    HardwareMap hardwareMap;
 
+    HardwareMap hardwareMap;
     Telemetry telemetry;
     TelemetryManager panelsTelemetry;
 
@@ -21,22 +21,15 @@ public class Outtake {
     public double power = 0.85;
 
     public Outtake(HardwareMap hardwareMap, Telemetry telemetry, String motorName/*, TelemetryManager panelsTelemetry*/){
-        this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
+        this.hardwareMap = hardwareMap;
         //this.panelsTelemetry = panelsTelemetry;
         this.outtakeMotor = hardwareMap.get(DcMotor.class, motorName);
     }
-    public void start() {
-        isRunning = true;
-        outtakeMotor.setPower(0.85);
-    }
-    public void stop() {
-        isRunning = false;
-        outtakeMotor.setPower(0);
-    }
-
-    public void setPower(double power) {
-        this.power = power;
+    public void setPower(double power){
+        this.power = power < 0 ? 0 : power;
+        outtakeMotor.setPower(power);
+        this.isRunning = (power != 0);
     }
     public double getPower(){
         return outtakeMotor.getPower();

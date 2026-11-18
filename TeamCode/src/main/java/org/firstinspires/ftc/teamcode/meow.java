@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 //import com.qualcomm.hardware.limelightvision.LLResultTypes;
 //import com.qualcomm.hardware.limelightvision.LLStatus;
 //import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 //import com.qualcomm.robotcore.hardware.IMU;
 //import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
@@ -38,18 +39,16 @@ public class meow extends OpMode {
 
     Localization localizer;
 
-    Outtake outtake;
-
-    Outtake outtakeMini;
+    Outtake outtakeNectar;
+    Outtake outtakePollen;
 
     @Override
     public void init() {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
-        this.drivetrain = new Drivetrain(hardwareMap, telemetry, panelsTelemetry, true);
+        this.drivetrain = new Drivetrain(hardwareMap, telemetry, panelsTelemetry, false);
         this.intake = new Intake(hardwareMap);
-        this.outtake = new Outtake(hardwareMap, telemetry, "outtakeMotor");
-        this.outtakeMini = new Outtake(hardwareMap, telemetry, "outtakeMini");
-
+        this.outtakeNectar = new Outtake(hardwareMap,telemetry, "outtakeMotor");
+        this.outtakePollen = new Outtake(hardwareMap, telemetry, "outtakeMini");
         localizer = new Localization(hardwareMap, telemetry, panelsTelemetry);
         localizer.recalibrateOdometry(true);
     }
@@ -66,15 +65,11 @@ public class meow extends OpMode {
         double lateral = gamepad1.left_stick_x;
         double yaw = -gamepad1.right_stick_x;
 
-        telemetry.addData("Axial", axial);
-        telemetry.addData("Lateral", lateral);
-        telemetry.addData("Yaw", yaw);
-
         drivetrain.drive(axial, lateral, yaw);
 
-        telemetry.addData("Intake spinning", intake.isRunning);
-        panelsTelemetry.addData("Intake spinning", intake.isRunning);
-        if (gamepad2.aWasPressed()) {
+        telemetry.addData("Intake spinning:", intake.isRunning);
+        panelsTelemetry.addData("Intake spinning:", intake.isRunning);
+        if (gamepad1.aWasPressed()) {
             if (intake.isRunning) {
                 intake.stop();
             } else {
@@ -82,27 +77,7 @@ public class meow extends OpMode {
             }
         }
 
-        if (gamepad1.bWasPressed()) {
-            if (outtake.isRunning) {
-                outtake.stop();
-                outtakeMini.stop();
-            } else {
-                outtake.start();
-                outtakeMini.start();
-            }
-        }
-
-        if (gamepad1.dpadUpWasPressed()) {
-            outtake.setPower(outtake.power+0.5);
-            outtakeMini.setPower(outtake.power+0.5);
-        }
-
-        if (gamepad1.dpadDownWasPressed()) {
-            outtake.setPower(outtake.power-0.5);
-            outtakeMini.setPower(outtake.power-0.5);
-        }
-
-        if (gamepad2.xWasPressed()) {
+        if (gamepad1.xWasPressed()) {
             intake.reverse();
         }
 
@@ -113,6 +88,21 @@ public class meow extends OpMode {
                 intake.openGate();
             }
         }
+
+        if(gamepad1.dpadUpWasPressed()){
+            outtakeNectar.setPower(outtakeNectar.getPower()+.01);
+        }
+        if(gamepad1.dpadDownWasPressed()){
+            outtakeNectar.setPower(outtakeNectar.getPower()-.01);
+        }
+        if(gamepad1.dpadRightWasPressed()){
+            outtakePollen.setPower(outtakePollen.getPower()+.01);
+        }
+        if(gamepad1.dpadLeftWasPressed()){
+            outtakePollen.setPower(outtakePollen.getPower()-.01);
+        }
+        telemetry.addData("outtake power nectar:", outtakeNectar.getPower());
+        telemetry.addData("outtake power pollen:", outtakePollen.getPower());
 
 //        localizer.runOdometry();
 
