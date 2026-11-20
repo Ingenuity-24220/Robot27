@@ -137,9 +137,11 @@ public class DrivePIDTuner extends OpMode {
             double left = kP_xy * leftErr + kD_xy * dLeft;
             double turn = kP_h * headErr + kD_h * dHead;
 
-            if (Math.hypot(dx, dy) > AutoConfig.POS_TOL_IN) {
-                if (Math.abs(fwd) > 0.005) fwd += Math.copySign(kS_xy, fwd);
-                if (Math.abs(left) > 0.005) left += Math.copySign(kS_xy, left);
+            // Static friction feedforward along the direction to the target (same as CustomAutoRunner).
+            double dist = Math.hypot(dx, dy);
+            if (dist > AutoConfig.POS_TOL_IN) {
+                fwd += kS_xy * fwdErr / dist;
+                left += kS_xy * leftErr / dist;
             }
             if (Math.abs(Math.toDegrees(headErr)) > AutoConfig.HEAD_TOL_DEG && Math.abs(turn) > 0.005) {
                 turn += Math.copySign(kS_h, turn);

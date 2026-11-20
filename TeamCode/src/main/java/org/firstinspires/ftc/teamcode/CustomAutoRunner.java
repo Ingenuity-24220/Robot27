@@ -202,10 +202,11 @@ public class CustomAutoRunner extends LinearOpMode {
             prevHead = headErr;
             prevTime = now;
 
-            // Static friction feedforward, only while outside tolerance.
+            // Static friction feedforward along the direction to the target, only while outside
+            // tolerance. Applying it per axis made tiny sideways errors flip a full kS of strafe.
             if (dist > AutoConfig.POS_TOL_IN) {
-                if (Math.abs(fwd) > 0.005) fwd += Math.copySign(AutoConfig.kS_xy, fwd);
-                if (Math.abs(left) > 0.005) left += Math.copySign(AutoConfig.kS_xy, left);
+                fwd += AutoConfig.kS_xy * fwdErr / dist;
+                left += AutoConfig.kS_xy * leftErr / dist;
             }
             if (Math.abs(Math.toDegrees(headErr)) > AutoConfig.HEAD_TOL_DEG && Math.abs(turn) > 0.005) {
                 turn += Math.copySign(AutoConfig.kS_h, turn);
