@@ -1,0 +1,118 @@
+package org.firstinspires.ftc.teamcode.util;
+
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
+/**
+ * Shared hardware settings and gains for the custom tuners and CustomAutoRunner.
+ * Replaces Pedro Pathing's util/pedro/Constants.java for autonomous driving.
+ */
+public class AutoConfig {
+
+    // --- Motor names & directions (match Drivetrain.java; verify in Tuner 1) ---
+    public static final String LF_NAME = "motorLF";
+    public static final String LR_NAME = "motorLR";
+    public static final String RF_NAME = "motorRF";
+    public static final String RR_NAME = "motorRR";
+
+    public static DcMotorSimple.Direction LF_DIR = DcMotorSimple.Direction.FORWARD;
+    public static DcMotorSimple.Direction LR_DIR = DcMotorSimple.Direction.FORWARD;
+    public static DcMotorSimple.Direction RF_DIR = DcMotorSimple.Direction.REVERSE;
+    public static DcMotorSimple.Direction RR_DIR = DcMotorSimple.Direction.REVERSE;
+
+    // --- Pinpoint settings (match Localization.java; verify in Tuner 1) ---
+    public static final String PINPOINT_NAME = "pinpoint";
+    public static GoBildaPinpointDriver.GoBildaOdometryPods POD_TYPE =
+            GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
+
+    public static GoBildaPinpointDriver.EncoderDirection X_POD_DIR =
+            GoBildaPinpointDriver.EncoderDirection.FORWARD;
+    public static GoBildaPinpointDriver.EncoderDirection Y_POD_DIR =
+            GoBildaPinpointDriver.EncoderDirection.REVERSED;
+
+    // Sideways distance of forward pod (+ left, - right) and forward distance of strafe pod (+ forward, - back)
+    public static double X_POD_OFFSET_MM = -180.0;
+    public static double Y_POD_OFFSET_MM = -30.0;
+
+    // --- Gains (starting values; copy tuned values in from Tuner 2) ---
+    public static double kP_xy = 0.08;
+    public static double kD_xy = 0.005;
+    public static double kS_xy = 0.10;
+
+    public static double kP_h = 1.2;
+    public static double kD_h = 0.08;
+    public static double kS_h = 0.08;
+
+    public static double POS_TOL_IN = 1.0;
+    public static double HEAD_TOL_DEG = 2.0;
+
+    public static DcMotor[] initDriveMotors(HardwareMap hardwareMap) {
+        DcMotor lf = hardwareMap.get(DcMotor.class, LF_NAME);
+        DcMotor lr = hardwareMap.get(DcMotor.class, LR_NAME);
+        DcMotor rf = hardwareMap.get(DcMotor.class, RF_NAME);
+        DcMotor rr = hardwareMap.get(DcMotor.class, RR_NAME);
+
+        lf.setDirection(LF_DIR);
+        lr.setDirection(LR_DIR);
+        rf.setDirection(RF_DIR);
+        rr.setDirection(RR_DIR);
+
+        DcMotor[] motors = {lf, lr, rf, rr};
+        for (DcMotor m : motors) {
+            m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+        return motors;
+    }
+
+    /** Configures the Pinpoint and starts an IMU calibration; keep the robot still for ~0.3 s afterward. */
+    public static GoBildaPinpointDriver initPinpoint(HardwareMap hardwareMap, boolean zeroOffsetsForCalibration) {
+        GoBildaPinpointDriver odo = hardwareMap.get(GoBildaPinpointDriver.class, PINPOINT_NAME);
+        if (zeroOffsetsForCalibration) {
+            odo.setOffsets(0.0, 0.0, DistanceUnit.MM);
+        } else {
+            odo.setOffsets(X_POD_OFFSET_MM, Y_POD_OFFSET_MM, DistanceUnit.MM);
+        }
+        odo.setEncoderResolution(POD_TYPE);
+        odo.setEncoderDirections(X_POD_DIR, Y_POD_DIR);
+        odo.resetPosAndIMU(); // calibrates IMU over ~250ms while stationary
+        return odo;
+    }
+
+    /**
+     * Drives in robot frame (+forward, +left, +ccw), writing motor powers directly
+     * (no smoothing filter), with the same wheel mixing as Drivetrain.java.
+     */
+    public static void driveRaw(DcMotor[] motors, double forward, double left, double ccw, double maxPower) {
+        double lateral = -left; // Drivetrain.java uses +lateral = right
+        double yaw = -ccw;      // Drivetrain.java uses +yaw = CW
+
+        double lf = forward + lateral + yaw;
+        double lr = forward - lateral + yaw;
+        double rf = forward - lateral - yaw;
+        double rr = forward + lateral - yaw;
+
+        double peak = Math.max(Math.max(Math.abs(lf), Math.abs(lr)),
+                Math.max(Math.abs(rf), Math.abs(rr)));
+        if (peak > maxPower && peak > 0) {
+            double scale = maxPower / peak;
+            lf *= scale;
+            lr *= scale;
+            rf *= scale;
+            rr *= scale;
+        }
+
+        motors[0].setPower(lf);
+        motors[1].setPower(lr);
+        motors[2].setPower(rf);
+        motors[3].setPower(rr);
+    }
+
+    public static void stop(DcMotor[] motors) {
+        for (DcMotor m : motors) m.setPower(0);
+    }
+}
