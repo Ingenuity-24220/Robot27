@@ -115,4 +115,16 @@ public class AutoConfig {
     public static void stop(DcMotor[] motors) {
         for (DcMotor m : motors) m.setPower(0);
     }
+
+    // Low-pass filter on the D term, 0-1. Lower = smoother but laggier derivative.
+    public static double D_FILTER = 0.3;
+
+    /**
+     * Fraction of kS to apply for an error of absErr: 0 below half the tolerance, rising
+     * linearly to 1 at 1.5x the tolerance. A smooth ramp instead of an on/off step keeps
+     * kS from kicking the robot back and forth around the tolerance edge.
+     */
+    public static double frictionRamp(double absErr, double tol) {
+        return Math.max(0.0, Math.min(1.0, (absErr - 0.5 * tol) / tol));
+    }
 }

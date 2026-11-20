@@ -34,6 +34,8 @@ public class DrivePIDTuner extends OpMode {
     private final ElapsedTime loopTimer = new ElapsedTime();
     private double prevTime = 0;
     private double prevFwdErr = 0, prevLeftErr = 0, prevHeadErr = 0;
+    private double dFwd = 0, dLeft = 0, dHead = 0; // filtered error derivatives
+    private boolean targetChanged = true;
 
     // Start pose in Pedro coordinates (center of one tile)
     private final double startX = 24.0, startY = 24.0, startH = 0.0;
@@ -73,6 +75,7 @@ public class DrivePIDTuner extends OpMode {
     @Override
     public void loop() {
         // --- Target selection ---
+        double oldX = targetX, oldY = targetY, oldH = targetH;
         if (gamepad1.aWasPressed()) { // Forward 24 in
             targetX = (Math.abs(targetX - startX) < 1.0) ? startX + 24.0 : startX;
             targetY = startY;
@@ -94,6 +97,8 @@ public class DrivePIDTuner extends OpMode {
             targetY = atStart ? startY + 24.0 : startY;
             targetH = atStart ? startH + 45.0 : startH;
         }
+
+        if (targetX != oldX || targetY != oldY || targetH != oldH) targetChanged = true;
 
         // --- Gain editing ---
         if (gamepad1.leftBumperWasPressed()) active = !active;
@@ -124,9 +129,16 @@ public class DrivePIDTuner extends OpMode {
 
         double now = loopTimer.seconds();
         double dt = Math.max(now - prevTime, 1e-4);
-        double dFwd = (fwdErr - prevFwdErr) / dt;
-        double dLeft = (leftErr - prevLeftErr) / dt;
-        double dHead = (headErr - prevHeadErr) / dt;
+        if (targetChanged) { // no derivative kick when the target jumps
+            prevFwdErr = fwdErr;
+            prevLeftErr = leftErr;
+            prevHeadErr = headErr;
+            targetChanged = false;
+        }
+        // Low-pass filtered derivative (same as CustomAutoRunner).
+        dFwd += AutoConfig.D_FILTER * ((fwdErr - prevFwdErr) / dt - dFwd);
+        dLeft += AutoConfig.D_FILTER * ((leftErr - prevLeftErr) / dt - dLeft);
+        dHead += AutoConfig.D_FILTER * ((headErr - prevHeadErr) / dt - dHead);
         prevFwdErr = fwdErr;
         prevLeftErr = leftErr;
         prevHeadErr = headErr;
@@ -137,15 +149,15 @@ public class DrivePIDTuner extends OpMode {
             double left = kP_xy * leftErr + kD_xy * dLeft;
             double turn = kP_h * headErr + kD_h * dHead;
 
-            // Static friction feedforward along the direction to the target (same as CustomAutoRunner).
+            // Static friction feedforward, smoothly faded in (same as CustomAutoRunner).
             double dist = Math.hypot(dx, dy);
-            if (dist > AutoConfig.POS_TOL_IN) {
-                fwd += kS_xy * fwdErr / dist;
-                left += kS_xy * leftErr / dist;
+            if (dist > 1e-6) {
+                double ks = kS_xy * AutoConfig.frictionRamp(dist, AutoConfig.POS_TOL_IN);
+                fwd += ks * fwdErr / dist;
+                left += ks * leftErr / dist;
             }
-            if (Math.abs(Math.toDegrees(headErr)) > AutoConfig.HEAD_TOL_DEG && Math.abs(turn) > 0.005) {
-                turn += Math.copySign(kS_h, turn);
-            }
+            turn += Math.signum(headErr) * kS_h
+                    * AutoConfig.frictionRamp(Math.abs(Math.toDegrees(headErr)), AutoConfig.HEAD_TOL_DEG);
 
             AutoConfig.driveRaw(motors, fwd, left, turn, maxPower);
         } else {

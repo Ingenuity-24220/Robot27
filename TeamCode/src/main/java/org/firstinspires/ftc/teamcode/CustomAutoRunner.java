@@ -172,6 +172,7 @@ public class CustomAutoRunner extends LinearOpMode {
         double[] err = errors(tx, ty, tH);
         double prevFwd = err[0], prevLeft = err[1], prevHead = err[2];
         double prevTime = clock.seconds();
+        double dFwd = 0, dLeft = 0, dHead = 0; // filtered error derivatives
 
         while (opModeIsActive()) {
             double now = clock.seconds();
@@ -194,23 +195,27 @@ public class CustomAutoRunner extends LinearOpMode {
             }
 
             double dt = Math.max(now - prevTime, 1e-4);
-            double fwd = AutoConfig.kP_xy * fwdErr + AutoConfig.kD_xy * (fwdErr - prevFwd) / dt;
-            double left = AutoConfig.kP_xy * leftErr + AutoConfig.kD_xy * (leftErr - prevLeft) / dt;
-            double turn = AutoConfig.kP_h * headErr + AutoConfig.kD_h * (headErr - prevHead) / dt;
+            // Low-pass filter the derivative so sensor jitter over a few-ms loop doesn't become power spikes.
+            dFwd += AutoConfig.D_FILTER * ((fwdErr - prevFwd) / dt - dFwd);
+            dLeft += AutoConfig.D_FILTER * ((leftErr - prevLeft) / dt - dLeft);
+            dHead += AutoConfig.D_FILTER * ((headErr - prevHead) / dt - dHead);
+            double fwd = AutoConfig.kP_xy * fwdErr + AutoConfig.kD_xy * dFwd;
+            double left = AutoConfig.kP_xy * leftErr + AutoConfig.kD_xy * dLeft;
+            double turn = AutoConfig.kP_h * headErr + AutoConfig.kD_h * dHead;
             prevFwd = fwdErr;
             prevLeft = leftErr;
             prevHead = headErr;
             prevTime = now;
 
-            // Static friction feedforward along the direction to the target, only while outside
-            // tolerance. Applying it per axis made tiny sideways errors flip a full kS of strafe.
-            if (dist > AutoConfig.POS_TOL_IN) {
-                fwd += AutoConfig.kS_xy * fwdErr / dist;
-                left += AutoConfig.kS_xy * leftErr / dist;
+            // Static friction feedforward along the direction to the target (so a tiny sideways
+            // error gets a tiny share), faded in smoothly around the tolerance instead of switched.
+            if (dist > 1e-6) {
+                double ks = AutoConfig.kS_xy * AutoConfig.frictionRamp(dist, AutoConfig.POS_TOL_IN);
+                fwd += ks * fwdErr / dist;
+                left += ks * leftErr / dist;
             }
-            if (Math.abs(Math.toDegrees(headErr)) > AutoConfig.HEAD_TOL_DEG && Math.abs(turn) > 0.005) {
-                turn += Math.copySign(AutoConfig.kS_h, turn);
-            }
+            turn += Math.signum(headErr) * AutoConfig.kS_h
+                    * AutoConfig.frictionRamp(Math.abs(Math.toDegrees(headErr)), AutoConfig.HEAD_TOL_DEG);
 
             AutoConfig.driveRaw(motors, fwd, left, turn, maxPower);
 
