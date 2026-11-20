@@ -20,7 +20,7 @@ import java.util.Locale;
  * 1. Hold A/B/X/Y (LF/RF/LR/RR): each wheel must spin forward. Fix directions in AutoConfig.
  * 2. Push robot forward: X increases. Push left: Y increases. Turn CCW: heading increases.
  *    Otherwise fix X_POD_DIR / Y_POD_DIR in AutoConfig.
- * 3. Offsets: LB toggles ZERO_OFFSET mode (pose resets). Spin roughly 180 deg CCW in place,
+ * 3. Offsets: LB toggles ZERO_OFFSET mode (pose resets). Hold RT to spin ~180 deg CCW in place,
  *    press RB, copy the computed X_POD_OFFSET_MM / Y_POD_OFFSET_MM into AutoConfig.
  */
 @TeleOp(name = "1. Hardware & Pinpoint Tuner", group = "Custom Tuning")
@@ -52,11 +52,17 @@ public class HardwareAndPinpointTuner extends OpMode {
 
     @Override
     public void loop() {
-        // 1. Individual motor check (hold button to spin forward at 0.35 power)
-        motors[0].setPower(gamepad1.a ? 0.35 : 0.0); // LF
-        motors[1].setPower(gamepad1.x ? 0.35 : 0.0); // LR
-        motors[2].setPower(gamepad1.b ? 0.35 : 0.0); // RF
-        motors[3].setPower(gamepad1.y ? 0.35 : 0.0); // RR
+        // 1. Hold Right Trigger to spin CCW in place (for offset calibration; press harder = faster, max 0.3).
+        //    Otherwise, individual motor check (hold button to spin forward at 0.35 power).
+        double spin = gamepad1.right_trigger * 0.3;
+        if (spin > 0.02) {
+            AutoConfig.driveRaw(motors, 0, 0, spin, 1.0);
+        } else {
+            motors[0].setPower(gamepad1.a ? 0.35 : 0.0); // LF
+            motors[1].setPower(gamepad1.x ? 0.35 : 0.0); // LR
+            motors[2].setPower(gamepad1.b ? 0.35 : 0.0); // RF
+            motors[3].setPower(gamepad1.y ? 0.35 : 0.0); // RR
+        }
 
         // 2. Reset pose / toggle zero-offset mode for offset calibration
         if (gamepad1.dpadDownWasPressed()) {
@@ -92,7 +98,7 @@ public class HardwareAndPinpointTuner extends OpMode {
             }
         }
 
-        panels.addData("Motors (Hold)", "A=LF  B=RF  X=LR  Y=RR");
+        panels.addData("Motors (Hold)", "A=LF  B=RF  X=LR  Y=RR  RT=spin CCW");
         panels.addData("Pinpoint Reset", "DpadDown = zero pose | LB = toggle offset cal ("
                 + (zeroOffsetsMode ? "ZERO_OFFSET" : "CONFIG_OFFSET") + ")");
         panels.addData("X (in) [+forward]", String.format(Locale.US, "%.2f", pose.getX(DistanceUnit.INCH)));

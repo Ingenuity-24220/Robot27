@@ -38,7 +38,9 @@ Put the robot on the field and keep it still for 1 s after INIT, then press STAR
      If heading is wrong, the Pinpoint is mounted upside down or the pods are swapped.
 3. **Pod offsets.**
    1. Press Left Bumper. Telemetry shows `ZERO_OFFSET` and the pose resets.
-   2. Spin the robot about 180° CCW **in place** (doesn't need to be exact; more than ~60° works).
+   2. Hold Right Trigger to spin the robot in place until heading is about 180° (doesn't need to be exact;
+      anything over ~90° works, but stay away from 360°). Go slowly, and let it stop fully before step 3.
+      Heading must go **up** while spinning; if it goes down, the turn direction is wrong.
    3. Press Right Bumper. Copy `Computed X_POD_OFFSET_MM` and `Computed Y_POD_OFFSET_MM`
       into `AutoConfig`. Repeat 2-3 times and average if they vary.
    4. Press Left Bumper again to go back to `CONFIG_OFFSET`.
