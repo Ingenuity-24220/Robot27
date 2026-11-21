@@ -116,15 +116,6 @@ public class CustomAutoRunner extends LinearOpMode {
         }
     }
 
-    /**
-     * The start is ~2 in from the red pod, so always come back straight up from 2 tiles below it:
-     * position errors then push the robot along the pod instead of into it.
-     */
-    private void returnToStart() {
-        driveThrough(startX, 28, startH, speed);
-        driveTo(startX, startY, startH, speed);
-    }
-
     /** meowAuto's line + curve to park, a turn, then back to the start. */
     private void example() {
         driveTo(23.026, 34.411, 180, speed);
@@ -133,7 +124,7 @@ public class CustomAutoRunner extends LinearOpMode {
         turnTo(90, speed);
         turnTo(180, speed);
         driveTo(23.026, 34.411, 180, speed);
-        returnToStart();
+        driveTo(startX, startY, startH, speed);
     }
 
     /**
@@ -147,7 +138,8 @@ public class CustomAutoRunner extends LinearOpMode {
         driveThrough(28, 116, faceTravel ? 90 : 180, speed);
         driveThrough(116, 116, faceTravel ? 0 : 180, speed);
         driveThrough(116, 28, faceTravel ? -90 : 180, speed);
-        returnToStart();
+        driveThrough(36, 28, 180, speed); // go around the red pod, not through it
+        driveTo(startX, startY, startH, speed);
     }
 
     /**
@@ -159,7 +151,7 @@ public class CustomAutoRunner extends LinearOpMode {
         followBezier(28, 28, 18, 52, 24, 72, 180, 135, speed);
         followBezier(24, 72, 40, 96, 24, 116, 135, 90, speed);
         driveTo(28, 28, 180, speed);
-        returnToStart();
+        driveTo(startX, startY, startH, speed);
     }
 
     // ------------------------------------------------------------------------------------
