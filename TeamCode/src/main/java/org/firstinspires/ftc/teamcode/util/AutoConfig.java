@@ -144,7 +144,7 @@ public class AutoConfig {
         return imu;
     }
 
-    // --- Heading source (see util/Odometry.java) ---
+    // --- Heading source (see util/Localization.java) ---
     // true: ignore the Pinpoint's IMU; compute X/Y from its raw pod counts with the hub IMU's heading.
     // false: use the Pinpoint's own pose.
     public static boolean USE_HUB_HEADING = true;

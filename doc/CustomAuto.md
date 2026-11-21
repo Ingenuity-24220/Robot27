@@ -142,7 +142,7 @@ power scaling, and the gains in use (so D-pad changes show up in the data).
 
 ## Heading source (Pinpoint IMU vs hub IMU)
 
-`AutoConfig.USE_HUB_HEADING` picks where heading comes from (see `util/Odometry.java`):
+`AutoConfig.USE_HUB_HEADING` picks where heading comes from (see `util/Localization.java`):
 
 - `true` (current default): the Pinpoint's IMU is ignored. X/Y are computed in our code from
   the Pinpoint's two raw pod counts, using the Control Hub IMU for heading. Use this while the

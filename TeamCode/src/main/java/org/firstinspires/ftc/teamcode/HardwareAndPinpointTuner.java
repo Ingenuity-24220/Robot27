@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
-import org.firstinspires.ftc.teamcode.util.Odometry;
+import org.firstinspires.ftc.teamcode.util.Localization;
 
 import java.util.Locale;
 
@@ -27,7 +27,7 @@ import java.util.Locale;
 public class HardwareAndPinpointTuner extends OpMode {
 
     private DcMotor[] motors; // LF, LR, RF, RR
-    private Odometry odo;
+    private Localization odo;
     private TelemetryManager panels;
 
     private boolean zeroOffsetsMode = false;
@@ -38,7 +38,7 @@ public class HardwareAndPinpointTuner extends OpMode {
     @Override
     public void init() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
-        odo = new Odometry(hardwareMap);
+        odo = new Localization(hardwareMap);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
 
         telemetry.addLine("Keep robot still for 1s before pressing START.");

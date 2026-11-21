@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
 import org.firstinspires.ftc.teamcode.util.DataLogger;
-import org.firstinspires.ftc.teamcode.util.Odometry;
+import org.firstinspires.ftc.teamcode.util.Localization;
 
 import java.util.Locale;
 
@@ -33,7 +33,7 @@ public class CustomAutoRunner extends LinearOpMode {
     private static final double DEFAULT_SWITCH_RADIUS_IN = 4.0;
 
     private DcMotor[] motors;
-    private Odometry odo;
+    private Localization odo;
     private TelemetryManager panels;
     private final ElapsedTime clock = new ElapsedTime();
     private DataLogger log;
@@ -45,7 +45,7 @@ public class CustomAutoRunner extends LinearOpMode {
     @Override
     public void runOpMode() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
-        odo = new Odometry(hardwareMap);
+        odo = new Localization(hardwareMap);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
         log = new DataLogger("auto",
                 "t", "step", "passThrough", "targetX", "targetY", "targetH",
