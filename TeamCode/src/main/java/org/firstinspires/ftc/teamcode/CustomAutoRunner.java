@@ -91,6 +91,9 @@ public class CustomAutoRunner extends LinearOpMode {
         followBezier(23.026, 34.411, 44.315, 47.793, 23.026, 65.816, 180, 180, speed);
         waitSec(0.25);
         turnTo(90, speed);
+        turnTo(180, speed);
+        driveTo(23.026, 34.411, 180, speed);
+        driveTo(startX, startY, startH, speed);
     }
 
     // ------------------------------------------------------------------------------------
