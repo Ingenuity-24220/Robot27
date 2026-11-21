@@ -114,9 +114,9 @@ public class CustomAutoRunner extends LinearOpMode {
     }
 
     /**
-     * Pass through an intermediate waypoint without stopping: the step ends as soon as
-     * the robot is within switchRadiusIn of (x, y). Heading is not required to be reached.
-     * Motors keep running into the next step.
+     * Pass through an intermediate waypoint without stopping: drives straight at (x, y) at
+     * maxPower and ends as soon as the robot is within switchRadiusIn of it. Heading is not
+     * required to be reached. Motors keep running into the next step.
      */
     public boolean driveThrough(double x, double y, double headingDeg, double maxPower, double switchRadiusIn) {
         return move(x, y, headingDeg, maxPower, 0, 0, 3.0, switchRadiusIn);
@@ -192,10 +192,12 @@ public class CustomAutoRunner extends LinearOpMode {
         step++;
 
         while (opModeIsActive()) {
+            odo.update();
+            // Read the clock after update() so dt spans the same interval as the pose change.
+            // (Reading it before made the first cycle of every step divide ~20 ms of motion by ~0.1 ms.)
             double now = clock.seconds();
             if (now - start > timeoutSec) return false;
 
-            odo.update();
             err = errors(tx, ty, tH);
             double fwdErr = err[0], leftErr = err[1], headErr = err[2], dist = err[3];
 
@@ -233,6 +235,14 @@ public class CustomAutoRunner extends LinearOpMode {
             }
             turn += Math.signum(headErr) * AutoConfig.kS_h
                     * AutoConfig.frictionRamp(Math.abs(Math.toDegrees(headErr)), AutoConfig.HEAD_TOL_DEG);
+
+            if (switchRadiusIn > 0 && dist > 1e-6) {
+                // Pass-through: drive straight at the waypoint at full maxPower instead of slowing
+                // toward it (which made curves surge and stall at every point). Heading keeps its PD;
+                // the final driveTo does the braking.
+                fwd = maxPower * fwdErr / dist;
+                left = maxPower * leftErr / dist;
+            }
 
             AutoConfig.driveRaw(motors, fwd, left, turn, maxPower);
 
