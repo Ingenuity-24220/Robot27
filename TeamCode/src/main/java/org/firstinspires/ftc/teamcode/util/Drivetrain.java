@@ -46,8 +46,8 @@ public class Drivetrain {
         imu = hardwareMap.get(IMU.class, "imu");
 //        limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
-        motorRF.setDirection(DcMotorSimple.Direction.REVERSE);
-        motorRR.setDirection(DcMotorSimple.Direction.REVERSE);
+        motorLF.setDirection(DcMotorSimple.Direction.REVERSE);
+        motorLR.setDirection(DcMotorSimple.Direction.REVERSE);
 
 //        limelight.setPollRateHz(100);
 //        limelight.start();

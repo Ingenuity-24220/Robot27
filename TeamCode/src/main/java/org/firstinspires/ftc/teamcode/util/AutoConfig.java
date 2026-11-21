@@ -21,10 +21,10 @@ public class AutoConfig {
     public static final String RF_NAME = "motorRF";
     public static final String RR_NAME = "motorRR";
 
-    public static DcMotorSimple.Direction LF_DIR = DcMotorSimple.Direction.FORWARD;
-    public static DcMotorSimple.Direction LR_DIR = DcMotorSimple.Direction.FORWARD;
-    public static DcMotorSimple.Direction RF_DIR = DcMotorSimple.Direction.REVERSE;
-    public static DcMotorSimple.Direction RR_DIR = DcMotorSimple.Direction.REVERSE;
+    public static DcMotorSimple.Direction LF_DIR = DcMotorSimple.Direction.REVERSE;
+    public static DcMotorSimple.Direction LR_DIR = DcMotorSimple.Direction.REVERSE;
+    public static DcMotorSimple.Direction RF_DIR = DcMotorSimple.Direction.FORWARD;
+    public static DcMotorSimple.Direction RR_DIR = DcMotorSimple.Direction.FORWARD;
 
     // --- Pinpoint settings (match Localization.java; verify in Tuner 1) ---
     public static final String PINPOINT_NAME = "pinpoint";
@@ -34,11 +34,11 @@ public class AutoConfig {
     public static GoBildaPinpointDriver.EncoderDirection X_POD_DIR =
             GoBildaPinpointDriver.EncoderDirection.FORWARD;
     public static GoBildaPinpointDriver.EncoderDirection Y_POD_DIR =
-            GoBildaPinpointDriver.EncoderDirection.REVERSED;
+            GoBildaPinpointDriver.EncoderDirection.FORWARD;
 
     // Sideways distance of forward pod (+ left, - right) and forward distance of strafe pod (+ forward, - back)
-    public static double X_POD_OFFSET_MM = -180.0;
-    public static double Y_POD_OFFSET_MM = -30.0;
+    public static double X_POD_OFFSET_MM = -62.5;
+    public static double Y_POD_OFFSET_MM = -176.3;
 
     // --- Gains (starting values; copy tuned values in from Tuner 2) ---
     public static double kP_xy = 0.08;
