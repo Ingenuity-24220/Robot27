@@ -39,8 +39,8 @@ public class CustomAutoRunner extends LinearOpMode {
     private DataLogger log;
     private int step = 0; // increments on every driveTo/driveThrough call
 
-    // Start pose (same as meowAuto)
-    private final double startX = 59.521, startY = 34.411, startH = 180.0;
+    // Start pose (same as meowAuto). The team path (routine 6) uses its own start; see startPoseFor().
+    private double startX = 59.521, startY = 34.411, startH = 180.0;
 
     // Max power for the whole routine. Change it during INIT with D-pad Up/Down (0.2 to 1.0).
     private double speed = 0.6;
@@ -52,6 +52,7 @@ public class CustomAutoRunner extends LinearOpMode {
             "Lap around center, facing travel direction",
             "S-curve up the left side, turn while driving back",
             "Example x3 (repeatability)",
+            "Team path (7 Pedro lines), starts at (57.9, 10.5) facing 90",
     };
     private int routine = 0;
 
@@ -85,9 +86,11 @@ public class CustomAutoRunner extends LinearOpMode {
             if (gamepad1.dpadDownWasPressed()) speed = Math.max(0.2, Math.round(speed * 10 - 1) / 10.0);
             if (gamepad1.dpadRightWasPressed()) routine = (routine + 1) % ROUTINES.length;
             if (gamepad1.dpadLeftWasPressed()) routine = (routine - 1 + ROUTINES.length) % ROUTINES.length;
+            startPoseFor(routine);
             odo.update();
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
+            panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f) facing %.0f", startX, startY, startH));
             showPose("INIT - keep robot still");
         }
         if (isStopRequested()) return;
@@ -112,7 +115,52 @@ public class CustomAutoRunner extends LinearOpMode {
             case 2: lap(true); break;
             case 3: sCurve(); break;
             case 4: for (int i = 0; i < 3 && opModeIsActive(); i++) example(); break;
+            case 5: teamPath(); break;
         }
+    }
+
+    /** Sets startX/Y/H for a routine. Every routine uses the meowAuto start except the team path. */
+    private void startPoseFor(int r) {
+        if (r == 5) {
+            startX = 57.8787; startY = 10.5088; startH = 90;
+        } else {
+            startX = 59.521; startY = 34.411; startH = 180.0;
+        }
+    }
+
+    /**
+     * The team's Pedro paths (Paths.java), ported one to one. Each Pedro line ends with a stop and
+     * settle here (driveTo), which is where shooting will go. Pedro heading modes:
+     * linear -> followLine (heading changes evenly along the line); tangent / reverseTangent on a
+     * straight line -> a constant heading along / against the direction of travel.
+     */
+    private void teamPath() {
+        // path1: (57.88, 10.51, 90) -> (57.92, 36.90, 90), linear
+        if (!followLine(57.9167, 36.9032, 90, 90, speed)) return;
+        // path2: -> (10.49, 11.05), linear 90 -> 270 (exactly 180 deg: turns clockwise through 0)
+        if (!followLine(10.491, 11.053, 90, 270, speed)) return;
+        // path3: -> (35.19, 127.80), linear 270 -> 310
+        if (!followLine(35.1918, 127.804, 270, 310, speed)) return;
+        // path4: -> (46.86, 121.15), linear 310 -> 90 (+140 deg, counterclockwise)
+        if (!followLine(46.858, 121.1472, 310, 90, speed)) return;
+        // path5: -> (46.92, 131.74), tangent: facing the direction of travel (+Y, ~89.7 deg)
+        if (!driveTo(46.9181, 131.74, 89.6746, speed)) return;
+        // path6: -> (46.91, 118.20), reverseTangent: driving backward, still facing +Y (~90 deg)
+        if (!driveTo(46.9078, 118.2035, 89.9561, speed)) return;
+        // path7: -> (58.42, 119.00), linear 0 -> 270. Its start heading (0) differs from where
+        // path6 ends (90), as in the Pedro file, so the robot first swings toward 0 then to 270.
+        followLine(58.4153, 118.9954, 0, 270, speed);
+    }
+
+    /**
+     * Straight line from the current position to (x, y) with heading changing evenly from
+     * startHDeg to endHDeg (shortest way), like Pedro's line(...).linear(...). Settles at the end.
+     */
+    public boolean followLine(double x, double y, double startHDeg, double endHDeg, double maxPower) {
+        Pose2D p = odo.getPosition();
+        double x0 = p.getX(DistanceUnit.INCH), y0 = p.getY(DistanceUnit.INCH);
+        // A quadratic Bezier with its control point at the midpoint is a straight line.
+        return followBezier(x0, y0, (x0 + x) / 2, (y0 + y) / 2, x, y, startHDeg, endHDeg, maxPower);
     }
 
     /** meowAuto's line + curve to park, a turn, then back to the start. */
@@ -233,7 +281,7 @@ public class CustomAutoRunner extends LinearOpMode {
             double h = startHDeg + dH * t;
             boolean ok = (i < samples)
                     ? driveThrough(x, y, h, maxPower)
-                    : driveTo(x, y, h, maxPower, AutoConfig.POS_TOL_IN, AutoConfig.HEAD_TOL_DEG, 3.0);
+                    : driveTo(x, y, h, maxPower);
             if (!ok) {
                 AutoConfig.stop(motors);
                 return false;
