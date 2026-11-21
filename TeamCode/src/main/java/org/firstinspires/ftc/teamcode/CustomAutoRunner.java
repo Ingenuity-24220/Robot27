@@ -42,6 +42,9 @@ public class CustomAutoRunner extends LinearOpMode {
     // Start pose (same as meowAuto)
     private final double startX = 59.521, startY = 34.411, startH = 180.0;
 
+    // Max power for the whole routine. Change it during INIT with D-pad Up/Down (0.2 to 1.0).
+    private double speed = 0.6;
+
     @Override
     public void runOpMode() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
@@ -68,7 +71,10 @@ public class CustomAutoRunner extends LinearOpMode {
         setStartPose(startX, startY, startH);
 
         while (opModeInInit()) {
+            if (gamepad1.dpadUpWasPressed()) speed = Math.min(1.0, Math.round(speed * 10 + 1) / 10.0);
+            if (gamepad1.dpadDownWasPressed()) speed = Math.max(0.2, Math.round(speed * 10 - 1) / 10.0);
             odo.update();
+            panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             showPose("INIT - keep robot still");
         }
         if (isStopRequested()) return;
@@ -81,10 +87,10 @@ public class CustomAutoRunner extends LinearOpMode {
 
     /** The routine. Example below reproduces meowAuto's line + curve to park. */
     private void runPath() {
-        driveTo(23.026, 34.411, 180, 0.6);
-        followBezier(23.026, 34.411, 44.315, 47.793, 23.026, 65.816, 180, 180, 0.6);
+        driveTo(23.026, 34.411, 180, speed);
+        followBezier(23.026, 34.411, 44.315, 47.793, 23.026, 65.816, 180, 180, speed);
         waitSec(0.25);
-        turnTo(90, 0.5);
+        turnTo(90, speed);
     }
 
     // ------------------------------------------------------------------------------------
