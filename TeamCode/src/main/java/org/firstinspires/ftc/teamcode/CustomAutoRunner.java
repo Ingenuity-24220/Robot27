@@ -133,25 +133,31 @@ public class CustomAutoRunner extends LinearOpMode {
      * settle here (driveTo), which is where shooting will go. Pedro heading modes:
      * linear -> followLine (heading changes evenly along the line); tangent / reverseTangent on a
      * straight line -> a constant heading along / against the direction of travel.
-     * A path that times out (for example blocked by a game piece) doesn't end the routine; the
-     * next path starts from wherever the robot is. STOP still ends everything immediately.
+     * With AutoConfig.CONTINUE_IF_BLOCKED, a path that gets blocked (path 5 intentionally drives
+     * into the flower to intake) ends after BLOCKED_SEC and the next path starts from wherever the
+     * robot is. With it false, the routine ends at the first path that fails. STOP always ends it.
      */
     private void teamPath() {
         // path1: (57.88, 10.51, 90) -> (57.92, 36.90, 90), linear
-        followLine(57.9167, 36.9032, 90, 90, speed);
+        if (!followLine(57.9167, 36.9032, 90, 90, speed) && !keepGoing()) return;
         // path2: -> (10.49, 11.05), linear 90 -> 270 (exactly 180 deg: turns clockwise through 0)
-        followLine(10.491, 11.053, 90, 270, speed);
+        if (!followLine(10.491, 11.053, 90, 270, speed) && !keepGoing()) return;
         // path3: -> (35.19, 127.80), linear 270 -> 310
-        followLine(35.1918, 127.804, 270, 310, speed);
+        if (!followLine(35.1918, 127.804, 270, 310, speed) && !keepGoing()) return;
         // path4: -> (46.86, 121.15), linear 310 -> 90 (+140 deg, counterclockwise)
-        followLine(46.858, 121.1472, 310, 90, speed);
-        // path5: -> (46.92, 131.74), tangent: facing the direction of travel (+Y, ~89.7 deg)
-        driveTo(46.9181, 131.74, 89.6746, speed);
+        if (!followLine(46.858, 121.1472, 310, 90, speed) && !keepGoing()) return;
+        // path5: -> (46.92, 131.74), tangent (+Y, ~89.7 deg). Drives into the flower to intake.
+        if (!driveTo(46.9181, 131.74, 89.6746, speed) && !keepGoing()) return;
         // path6: -> (46.91, 118.20), reverseTangent: driving backward, still facing +Y (~90 deg)
-        driveTo(46.9078, 118.2035, 89.9561, speed);
+        if (!driveTo(46.9078, 118.2035, 89.9561, speed) && !keepGoing()) return;
         // path7: -> (58.42, 119.00), linear 0 -> 270. Its start heading (0) differs from where
         // path6 ends (90), as in the Pedro file, so the robot first swings toward 0 then to 270.
         followLine(58.4153, 118.9954, 0, 270, speed);
+    }
+
+    /** After a failed path: continue only if the option is on and STOP wasn't pressed. */
+    private boolean keepGoing() {
+        return AutoConfig.CONTINUE_IF_BLOCKED && opModeIsActive();
     }
 
     /**
@@ -305,6 +311,7 @@ public class CustomAutoRunner extends LinearOpMode {
         double tH = Math.toRadians(tHeadingDeg);
         double start = clock.seconds();
         double settledSince = -1;
+        double blockedSince = -1;
 
         // Seed derivative state with the current error so the first cycle has no D kick.
         odo.update();
@@ -368,6 +375,21 @@ public class CustomAutoRunner extends LinearOpMode {
             }
 
             AutoConfig.driveRaw(motors, fwd, left, turn, maxPower);
+
+            // Blocked: still asking for real power, but the robot has stopped moving and turning.
+            if (AutoConfig.CONTINUE_IF_BLOCKED) {
+                boolean stuck = Math.max(Math.abs(fwd), Math.max(Math.abs(left), Math.abs(turn))) > AutoConfig.BLOCKED_MIN_POWER
+                        && Math.hypot(odo.velX(), odo.velY()) < AutoConfig.BLOCKED_SPEED_IN_S
+                        && Math.abs(odo.velH()) < AutoConfig.BLOCKED_TURN_DEG_S;
+                if (!stuck) {
+                    blockedSince = -1;
+                } else if (blockedSince < 0) {
+                    blockedSince = now;
+                } else if (now - blockedSince >= AutoConfig.BLOCKED_SEC) {
+                    panels.addData("Last move", "BLOCKED, moved on");
+                    return false;
+                }
+            }
 
             Pose2D pose = odo.getPosition();
             log.log(now, step, switchRadiusIn > 0 ? 1 : 0, tx, ty, tHeadingDeg,

@@ -155,4 +155,14 @@ public class AutoConfig {
     public static double TICKS_PER_MM = 19.89436789;
     public static double X_ENC_SIGN = 1;
     public static double Y_ENC_SIGN = 1;
+
+    // --- Blocked moves (CustomAutoRunner) ---
+    // true: a move whose robot stays stopped short of its target for BLOCKED_SEC (pushing into a
+    // game element, for example the flower when intaking) ends early and the routine continues.
+    // false: no early detection; a move waits for its timeout, and the team path ends if one fails.
+    public static boolean CONTINUE_IF_BLOCKED = true;
+    public static double BLOCKED_SEC = 0.5;          // how long to push while stopped before moving on
+    public static double BLOCKED_SPEED_IN_S = 1.0;   // "stopped": slower than this...
+    public static double BLOCKED_TURN_DEG_S = 5.0;   // ...and turning slower than this
+    public static double BLOCKED_MIN_POWER = 0.12;   // ...while asking for at least this much power
 }
