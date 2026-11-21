@@ -133,20 +133,22 @@ public class CustomAutoRunner extends LinearOpMode {
      * settle here (driveTo), which is where shooting will go. Pedro heading modes:
      * linear -> followLine (heading changes evenly along the line); tangent / reverseTangent on a
      * straight line -> a constant heading along / against the direction of travel.
+     * A path that times out (for example blocked by a game piece) doesn't end the routine; the
+     * next path starts from wherever the robot is. STOP still ends everything immediately.
      */
     private void teamPath() {
         // path1: (57.88, 10.51, 90) -> (57.92, 36.90, 90), linear
-        if (!followLine(57.9167, 36.9032, 90, 90, speed)) return;
+        followLine(57.9167, 36.9032, 90, 90, speed);
         // path2: -> (10.49, 11.05), linear 90 -> 270 (exactly 180 deg: turns clockwise through 0)
-        if (!followLine(10.491, 11.053, 90, 270, speed)) return;
+        followLine(10.491, 11.053, 90, 270, speed);
         // path3: -> (35.19, 127.80), linear 270 -> 310
-        if (!followLine(35.1918, 127.804, 270, 310, speed)) return;
+        followLine(35.1918, 127.804, 270, 310, speed);
         // path4: -> (46.86, 121.15), linear 310 -> 90 (+140 deg, counterclockwise)
-        if (!followLine(46.858, 121.1472, 310, 90, speed)) return;
+        followLine(46.858, 121.1472, 310, 90, speed);
         // path5: -> (46.92, 131.74), tangent: facing the direction of travel (+Y, ~89.7 deg)
-        if (!driveTo(46.9181, 131.74, 89.6746, speed)) return;
+        driveTo(46.9181, 131.74, 89.6746, speed);
         // path6: -> (46.91, 118.20), reverseTangent: driving backward, still facing +Y (~90 deg)
-        if (!driveTo(46.9078, 118.2035, 89.9561, speed)) return;
+        driveTo(46.9078, 118.2035, 89.9561, speed);
         // path7: -> (58.42, 119.00), linear 0 -> 270. Its start heading (0) differs from where
         // path6 ends (90), as in the Pedro file, so the robot first swings toward 0 then to 270.
         followLine(58.4153, 118.9954, 0, 270, speed);
