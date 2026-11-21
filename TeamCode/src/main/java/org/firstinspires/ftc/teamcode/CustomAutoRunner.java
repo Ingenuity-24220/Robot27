@@ -11,7 +11,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
+import org.firstinspires.ftc.teamcode.util.DataLogger;
 
 import java.util.Locale;
 
@@ -35,6 +37,8 @@ public class CustomAutoRunner extends LinearOpMode {
     private GoBildaPinpointDriver odo;
     private TelemetryManager panels;
     private final ElapsedTime clock = new ElapsedTime();
+    private DataLogger log;
+    private int step = 0; // increments on every driveTo/driveThrough call
 
     // Start pose (same as meowAuto)
     private final double startX = 59.521, startY = 34.411, startH = 180.0;
@@ -44,7 +48,21 @@ public class CustomAutoRunner extends LinearOpMode {
         motors = AutoConfig.initDriveMotors(hardwareMap);
         odo = AutoConfig.initPinpoint(hardwareMap, false);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
+        log = new DataLogger("auto",
+                "t", "step", "passThrough", "targetX", "targetY", "targetH",
+                "x", "y", "heading", "velX", "velY", "velH",
+                "fwdErr", "leftErr", "headErrDeg", "dist", "dFwd", "dLeft", "dHead",
+                "fwdOut", "leftOut", "turnOut", "maxPower",
+                "kP_xy", "kD_xy", "kS_xy", "kP_h", "kD_h", "kS_h", "D_FILTER");
+        try {
+            runAuto();
+        } finally {
+            AutoConfig.stop(motors);
+            log.close();
+        }
+    }
 
+    private void runAuto() {
         // Let the Pinpoint finish its IMU calibration (~0.25 s) while the robot is still.
         sleep(300);
         setStartPose(startX, startY, startH);
@@ -59,8 +77,6 @@ public class CustomAutoRunner extends LinearOpMode {
         setStartPose(startX, startY, startH);
 
         runPath();
-
-        AutoConfig.stop(motors);
     }
 
     /** The routine. Example below reproduces meowAuto's line + curve to park. */
@@ -173,6 +189,7 @@ public class CustomAutoRunner extends LinearOpMode {
         double prevFwd = err[0], prevLeft = err[1], prevHead = err[2];
         double prevTime = clock.seconds();
         double dFwd = 0, dLeft = 0, dHead = 0; // filtered error derivatives
+        step++;
 
         while (opModeIsActive()) {
             double now = clock.seconds();
@@ -219,6 +236,16 @@ public class CustomAutoRunner extends LinearOpMode {
 
             AutoConfig.driveRaw(motors, fwd, left, turn, maxPower);
 
+            Pose2D pose = odo.getPosition();
+            log.log(now, step, switchRadiusIn > 0 ? 1 : 0, tx, ty, tHeadingDeg,
+                    pose.getX(DistanceUnit.INCH), pose.getY(DistanceUnit.INCH), pose.getHeading(AngleUnit.DEGREES),
+                    odo.getVelX(DistanceUnit.INCH), odo.getVelY(DistanceUnit.INCH),
+                    odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES),
+                    fwdErr, leftErr, Math.toDegrees(headErr), dist, dFwd, dLeft, Math.toDegrees(dHead),
+                    fwd, left, turn, maxPower,
+                    AutoConfig.kP_xy, AutoConfig.kD_xy, AutoConfig.kS_xy,
+                    AutoConfig.kP_h, AutoConfig.kD_h, AutoConfig.kS_h, AutoConfig.D_FILTER);
+
             panels.addData("target", String.format(Locale.US, "(%.1f, %.1f, %.1f)", tx, ty, tHeadingDeg));
             panels.addData("posError (in)", String.format(Locale.US, "%.2f", dist));
             panels.addData("headError (deg)", String.format(Locale.US, "%.2f", Math.toDegrees(headErr)));
@@ -242,6 +269,7 @@ public class CustomAutoRunner extends LinearOpMode {
     private void showPose(String state) {
         Pose2D pose = odo.getPosition();
         panels.addData("State", state);
+        panels.addData("Log file", log.path());
         panels.addData("x", pose.getX(DistanceUnit.INCH));
         panels.addData("y", pose.getY(DistanceUnit.INCH));
         panels.addData("heading", pose.getHeading(AngleUnit.DEGREES));

@@ -122,3 +122,20 @@ To run intake/outtake, call their methods between moves in `runPath()`.
 - **Stops short of the target:** raise `kS_xy` / `kS_h`, or check the timeout isn't ending the move.
 - **Oscillates at the end:** lower `kP`, raise `kD`, or lower `kS`.
 - **Heading jumps at INIT:** the robot moved during the Pinpoint IMU calibration. Keep it still for 1 s after INIT.
+
+## Data logs
+
+Tuner 2 and the Custom Auto Runner each write one CSV per run to `/sdcard/FIRST/data` on the
+Control Hub (`tuner_YYYYMMDD_HHMMSS.csv` / `auto_YYYYMMDD_HHMMSS.csv`). Telemetry shows the
+file name as `Log file`. Tuner 2 only logs while RUNNING.
+
+Pull them over USB or wireless ADB:
+
+```bash
+adb connect 192.168.43.1:5555
+adb pull /sdcard/FIRST/data/ ./logs/
+```
+
+Columns: time (s), test segment / auto step, target and actual pose (in, deg), Pinpoint
+velocities, robot-frame errors, filtered derivatives (in/s, deg/s), controller outputs before
+power scaling, and the gains in use (so D-pad changes show up in the data).

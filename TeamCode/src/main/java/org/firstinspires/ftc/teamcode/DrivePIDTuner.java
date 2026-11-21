@@ -11,7 +11,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
+import org.firstinspires.ftc.teamcode.util.DataLogger;
 
 import java.util.Locale;
 
@@ -36,6 +38,8 @@ public class DrivePIDTuner extends OpMode {
     private double prevFwdErr = 0, prevLeftErr = 0, prevHeadErr = 0;
     private double dFwd = 0, dLeft = 0, dHead = 0; // filtered error derivatives
     private boolean targetChanged = true;
+    private int segment = 0; // increments each time A/B/X/Y changes the target
+    private DataLogger log;
 
     // Start pose in Pedro coordinates (center of one tile)
     private final double startX = 24.0, startY = 24.0, startH = 0.0;
@@ -61,6 +65,12 @@ public class DrivePIDTuner extends OpMode {
         motors = AutoConfig.initDriveMotors(hardwareMap);
         odo = AutoConfig.initPinpoint(hardwareMap, false);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
+        log = new DataLogger("tuner",
+                "t", "segment", "targetX", "targetY", "targetH",
+                "x", "y", "heading", "velX", "velY", "velH",
+                "fwdErr", "leftErr", "headErrDeg", "dFwd", "dLeft", "dHead",
+                "fwdOut", "leftOut", "turnOut",
+                "kP_xy", "kD_xy", "kS_xy", "kP_h", "kD_h", "kS_h", "D_FILTER", "maxPower");
         telemetry.addLine("Keep robot still for 1s before pressing START.");
         telemetry.update();
     }
@@ -98,7 +108,10 @@ public class DrivePIDTuner extends OpMode {
             targetH = atStart ? startH + 45.0 : startH;
         }
 
-        if (targetX != oldX || targetY != oldY || targetH != oldH) targetChanged = true;
+        if (targetX != oldX || targetY != oldY || targetH != oldH) {
+            targetChanged = true;
+            segment++;
+        }
 
         // --- Gain editing ---
         if (gamepad1.leftBumperWasPressed()) active = !active;
@@ -160,6 +173,15 @@ public class DrivePIDTuner extends OpMode {
                     * AutoConfig.frictionRamp(Math.abs(Math.toDegrees(headErr)), AutoConfig.HEAD_TOL_DEG);
 
             AutoConfig.driveRaw(motors, fwd, left, turn, maxPower);
+
+            // Only logged while RUNNING, so paused time doesn't fill the file.
+            log.log(now, segment, targetX, targetY, targetH,
+                    x, y, headingDeg,
+                    odo.getVelX(DistanceUnit.INCH), odo.getVelY(DistanceUnit.INCH),
+                    odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES),
+                    fwdErr, leftErr, Math.toDegrees(headErr), dFwd, dLeft, Math.toDegrees(dHead),
+                    fwd, left, turn,
+                    kP_xy, kD_xy, kS_xy, kP_h, kD_h, kS_h, AutoConfig.D_FILTER, maxPower);
         } else {
             AutoConfig.stop(motors);
         }
@@ -177,12 +199,14 @@ public class DrivePIDTuner extends OpMode {
         panels.addData("headError (deg)", String.format(Locale.US, "%.2f", Math.toDegrees(headErr)));
         panels.addData("kP_xy / kD_xy / kS_xy", String.format(Locale.US, "%.4f / %.4f / %.3f", kP_xy, kD_xy, kS_xy));
         panels.addData("kP_h  / kD_h  / kS_h", String.format(Locale.US, "%.4f / %.4f / %.3f", kP_h, kD_h, kS_h));
+        panels.addData("Log file", log.path());
         panels.update(telemetry);
     }
 
     @Override
     public void stop() {
         AutoConfig.stop(motors);
+        log.close();
     }
 
     private void adjustSelectedParam(double delta) {
