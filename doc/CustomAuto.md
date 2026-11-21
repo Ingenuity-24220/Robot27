@@ -84,7 +84,7 @@ as "there". The kS term turns off inside these tolerances.
 Set the start pose and write the routine in `CustomAutoRunner.java`:
 
 ```java
-private final double startX = 59.521, startY = 34.411, startH = 180.0;
+private final double startX = 36.0, startY = 60.0, startH = -90.0;
 
 private void runPath() {
     driveTo(23.026, 34.411, 180, 0.6);

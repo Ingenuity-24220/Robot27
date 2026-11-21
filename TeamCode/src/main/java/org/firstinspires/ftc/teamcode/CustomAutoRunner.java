@@ -39,8 +39,9 @@ public class CustomAutoRunner extends LinearOpMode {
     private DataLogger log;
     private int step = 0; // increments on every driveTo/driveThrough call
 
-    // Start pose (same as meowAuto)
-    private final double startX = 59.521, startY = 34.411, startH = 180.0;
+    // Start pose: looking from the red side, 2nd tile from the left and 4th tile from the top,
+    // beside the hive's left red pod, facing the red wall (2 tiles away).
+    private final double startX = 36.0, startY = 60.0, startH = -90.0;
 
     // Max power for the whole routine. Change it during INIT with D-pad Up/Down (0.2 to 1.0).
     private double speed = 0.6;
@@ -137,6 +138,7 @@ public class CustomAutoRunner extends LinearOpMode {
         driveThrough(28, 116, faceTravel ? 90 : 180, speed);
         driveThrough(116, 116, faceTravel ? 0 : 180, speed);
         driveThrough(116, 28, faceTravel ? -90 : 180, speed);
+        driveThrough(36, 28, 180, speed); // go around the red pod, not through it
         driveTo(startX, startY, startH, speed);
     }
 
