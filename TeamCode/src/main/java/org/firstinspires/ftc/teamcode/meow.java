@@ -56,7 +56,7 @@ public class meow extends OpMode {
 
         double axial = -g1.left_stick_y;
         double lateral = g1.left_stick_x;
-        double yaw = -g1.right_stick_x;
+        double yaw = g1.right_stick_x; // Drivetrain.drive() treats +yaw as clockwise (right)
 
         drivetrain.drive(axial, lateral, yaw);
 
