@@ -130,9 +130,10 @@ public class AutoConfig {
         return Math.max(0.0, Math.min(1.0, (absErr - 0.5 * tol) / tol));
     }
 
-    // --- Control Hub IMU, used only to cross-check the Pinpoint's heading (orientation from Drivetrain.java) ---
+    // --- Control Hub IMU, used only to cross-check the Pinpoint's heading ---
+    // Hub is mounted upright: REV logo faces the back of the robot, USB ports face the right.
     public static RevHubOrientationOnRobot.LogoFacingDirection HUB_LOGO =
-            RevHubOrientationOnRobot.LogoFacingDirection.UP;
+            RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD;
     public static RevHubOrientationOnRobot.UsbFacingDirection HUB_USB =
             RevHubOrientationOnRobot.UsbFacingDirection.RIGHT;
 
