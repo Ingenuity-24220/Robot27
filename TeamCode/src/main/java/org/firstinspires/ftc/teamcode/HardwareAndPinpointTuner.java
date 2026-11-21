@@ -6,6 +6,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -28,6 +29,7 @@ public class HardwareAndPinpointTuner extends OpMode {
 
     private DcMotor[] motors; // LF, LR, RF, RR
     private GoBildaPinpointDriver odo;
+    private IMU hubImu; // Control Hub IMU, for comparing headings only
     private TelemetryManager panels;
 
     private boolean zeroOffsetsMode = false;
@@ -40,6 +42,7 @@ public class HardwareAndPinpointTuner extends OpMode {
         motors = AutoConfig.initDriveMotors(hardwareMap);
         odo = AutoConfig.initPinpoint(hardwareMap, false);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
+        hubImu = AutoConfig.initHubImu(hardwareMap);
 
         telemetry.addLine("Keep robot still for 1s before pressing START.");
         telemetry.update();
@@ -48,6 +51,7 @@ public class HardwareAndPinpointTuner extends OpMode {
     @Override
     public void start() {
         odo.setPosition(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0));
+        hubImu.resetYaw();
     }
 
     @Override
@@ -67,6 +71,7 @@ public class HardwareAndPinpointTuner extends OpMode {
         // 2. Reset pose / toggle zero-offset mode for offset calibration
         if (gamepad1.dpadDownWasPressed()) {
             odo.setPosition(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0));
+            hubImu.resetYaw();
         }
 
         if (gamepad1.leftBumperWasPressed()) {
@@ -77,6 +82,7 @@ public class HardwareAndPinpointTuner extends OpMode {
                     DistanceUnit.MM
             );
             odo.setPosition(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0));
+            hubImu.resetYaw();
         }
 
         odo.update();
@@ -104,6 +110,10 @@ public class HardwareAndPinpointTuner extends OpMode {
         panels.addData("X (in) [+forward]", String.format(Locale.US, "%.2f", pose.getX(DistanceUnit.INCH)));
         panels.addData("Y (in) [+left]", String.format(Locale.US, "%.2f", pose.getY(DistanceUnit.INCH)));
         panels.addData("Heading (deg) [+CCW]", String.format(Locale.US, "%.2f", pose.getHeading(AngleUnit.DEGREES)));
+        double hubHeadingDeg = hubImu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        panels.addData("Hub IMU heading (deg) [+CCW]", String.format(Locale.US, "%.2f", hubHeadingDeg));
+        panels.addData("Pinpoint - hub heading (deg)", String.format(Locale.US, "%.2f",
+                AngleUnit.normalizeDegrees(pose.getHeading(AngleUnit.DEGREES) - hubHeadingDeg)));
         panels.addData("Raw Encoders (X, Y)", odo.getEncoderX() + ", " + odo.getEncoderY());
         panels.addData("Device Status", String.valueOf(odo.getDeviceStatus()));
 

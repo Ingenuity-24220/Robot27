@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.util;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
@@ -126,5 +128,18 @@ public class AutoConfig {
      */
     public static double frictionRamp(double absErr, double tol) {
         return Math.max(0.0, Math.min(1.0, (absErr - 0.5 * tol) / tol));
+    }
+
+    // --- Control Hub IMU, used only to cross-check the Pinpoint's heading (orientation from Drivetrain.java) ---
+    public static RevHubOrientationOnRobot.LogoFacingDirection HUB_LOGO =
+            RevHubOrientationOnRobot.LogoFacingDirection.UP;
+    public static RevHubOrientationOnRobot.UsbFacingDirection HUB_USB =
+            RevHubOrientationOnRobot.UsbFacingDirection.RIGHT;
+
+    public static IMU initHubImu(HardwareMap hardwareMap) {
+        IMU imu = hardwareMap.get(IMU.class, "imu");
+        imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(HUB_LOGO, HUB_USB)));
+        imu.resetYaw();
+        return imu;
     }
 }

@@ -6,6 +6,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -31,6 +32,7 @@ public class DrivePIDTuner extends OpMode {
 
     private DcMotor[] motors;
     private GoBildaPinpointDriver odo;
+    private IMU hubImu; // Control Hub IMU, for comparing headings only
     private TelemetryManager panels;
 
     private final ElapsedTime loopTimer = new ElapsedTime();
@@ -65,12 +67,14 @@ public class DrivePIDTuner extends OpMode {
         motors = AutoConfig.initDriveMotors(hardwareMap);
         odo = AutoConfig.initPinpoint(hardwareMap, false);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
+        hubImu = AutoConfig.initHubImu(hardwareMap);
         log = new DataLogger("tuner",
                 "t", "segment", "targetX", "targetY", "targetH",
                 "x", "y", "heading", "velX", "velY", "velH",
                 "fwdErr", "leftErr", "headErrDeg", "dFwd", "dLeft", "dHead",
                 "fwdOut", "leftOut", "turnOut",
-                "kP_xy", "kD_xy", "kS_xy", "kP_h", "kD_h", "kS_h", "D_FILTER", "maxPower");
+                "kP_xy", "kD_xy", "kS_xy", "kP_h", "kD_h", "kS_h", "D_FILTER", "maxPower",
+                "hubHeading", "hubVelH", "headingDiff");
         telemetry.addLine("Keep robot still for 1s before pressing START.");
         telemetry.update();
     }
@@ -78,6 +82,7 @@ public class DrivePIDTuner extends OpMode {
     @Override
     public void start() {
         odo.setPosition(new Pose2D(DistanceUnit.INCH, startX, startY, AngleUnit.DEGREES, startH));
+        hubImu.resetYaw();
         loopTimer.reset();
         prevTime = 0;
     }
@@ -132,6 +137,12 @@ public class DrivePIDTuner extends OpMode {
         double headingRad = pose.getHeading(AngleUnit.RADIANS);
         double headingDeg = pose.getHeading(AngleUnit.DEGREES);
 
+        // Control Hub IMU heading in the same field frame (both zeroed at START), for comparison.
+        double hubHeadingDeg = AngleUnit.normalizeDegrees(
+                startH + hubImu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
+        double hubVelH = hubImu.getRobotAngularVelocity(AngleUnit.DEGREES).zRotationRate;
+        double headingDiff = AngleUnit.normalizeDegrees(headingDeg - hubHeadingDeg);
+
         double dx = targetX - x;
         double dy = targetY - y;
         double headErr = AngleUnit.normalizeRadians(Math.toRadians(targetH) - headingRad);
@@ -181,7 +192,8 @@ public class DrivePIDTuner extends OpMode {
                     odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES),
                     fwdErr, leftErr, Math.toDegrees(headErr), dFwd, dLeft, Math.toDegrees(dHead),
                     fwd, left, turn,
-                    kP_xy, kD_xy, kS_xy, kP_h, kD_h, kS_h, AutoConfig.D_FILTER, maxPower);
+                    kP_xy, kD_xy, kS_xy, kP_h, kD_h, kS_h, AutoConfig.D_FILTER, maxPower,
+                    hubHeadingDeg, hubVelH, headingDiff);
         } else {
             AutoConfig.stop(motors);
         }
@@ -199,6 +211,8 @@ public class DrivePIDTuner extends OpMode {
         panels.addData("headError (deg)", String.format(Locale.US, "%.2f", Math.toDegrees(headErr)));
         panels.addData("kP_xy / kD_xy / kS_xy", String.format(Locale.US, "%.4f / %.4f / %.3f", kP_xy, kD_xy, kS_xy));
         panels.addData("kP_h  / kD_h  / kS_h", String.format(Locale.US, "%.4f / %.4f / %.3f", kP_h, kD_h, kS_h));
+        panels.addData("hubHeading", hubHeadingDeg);
+        panels.addData("Pinpoint - hub heading (deg)", String.format(Locale.US, "%.2f", headingDiff));
         panels.addData("Log file", log.path());
         panels.update(telemetry);
     }
