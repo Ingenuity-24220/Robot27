@@ -139,3 +139,22 @@ adb pull /sdcard/FIRST/data/ ./logs/
 Columns: time (s), test segment / auto step, target and actual pose (in, deg), Pinpoint
 velocities, robot-frame errors, filtered derivatives (in/s, deg/s), controller outputs before
 power scaling, and the gains in use (so D-pad changes show up in the data).
+
+## Heading source (Pinpoint IMU vs hub IMU)
+
+`AutoConfig.USE_HUB_HEADING` picks where heading comes from (see `util/Odometry.java`):
+
+- `true` (current default): the Pinpoint's IMU is ignored. X/Y are computed in our code from
+  the Pinpoint's two raw pod counts, using the Control Hub IMU for heading. Use this while the
+  Pinpoint's heading is unreliable (for example if the board can rock on its mount).
+- `false`: the Pinpoint's own pose is used.
+
+Telemetry shows `Heading source`, both IMUs' headings, and their difference; the logs record both.
+
+When switching to `true`, check in Tuner 1:
+
+1. `Raw Encoders` X goes up when pushing the robot forward and Y goes up when pushing it left.
+   If not, set `X_ENC_SIGN` / `Y_ENC_SIGN` to `-1`. Then X/Y should behave like the push test above.
+2. Hub orientation: turning CCW makes `Hub IMU heading` go up (`HUB_LOGO` / `HUB_USB`).
+3. Redo the pod offsets (Step 1.3) and the 180° check, since earlier offsets were measured
+   with the Pinpoint's heading.

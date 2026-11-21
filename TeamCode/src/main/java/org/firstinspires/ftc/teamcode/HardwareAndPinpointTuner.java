@@ -2,16 +2,15 @@ package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
+import org.firstinspires.ftc.teamcode.util.Odometry;
 
 import java.util.Locale;
 
@@ -28,8 +27,7 @@ import java.util.Locale;
 public class HardwareAndPinpointTuner extends OpMode {
 
     private DcMotor[] motors; // LF, LR, RF, RR
-    private GoBildaPinpointDriver odo;
-    private IMU hubImu; // Control Hub IMU, for comparing headings only
+    private Odometry odo;
     private TelemetryManager panels;
 
     private boolean zeroOffsetsMode = false;
@@ -40,9 +38,8 @@ public class HardwareAndPinpointTuner extends OpMode {
     @Override
     public void init() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
-        odo = AutoConfig.initPinpoint(hardwareMap, false);
+        odo = new Odometry(hardwareMap);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
-        hubImu = AutoConfig.initHubImu(hardwareMap);
 
         telemetry.addLine("Keep robot still for 1s before pressing START.");
         telemetry.update();
@@ -51,7 +48,6 @@ public class HardwareAndPinpointTuner extends OpMode {
     @Override
     public void start() {
         odo.setPosition(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0));
-        hubImu.resetYaw();
     }
 
     @Override
@@ -71,18 +67,15 @@ public class HardwareAndPinpointTuner extends OpMode {
         // 2. Reset pose / toggle zero-offset mode for offset calibration
         if (gamepad1.dpadDownWasPressed()) {
             odo.setPosition(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0));
-            hubImu.resetYaw();
         }
 
         if (gamepad1.leftBumperWasPressed()) {
             zeroOffsetsMode = !zeroOffsetsMode;
             odo.setOffsets(
                     zeroOffsetsMode ? 0.0 : AutoConfig.X_POD_OFFSET_MM,
-                    zeroOffsetsMode ? 0.0 : AutoConfig.Y_POD_OFFSET_MM,
-                    DistanceUnit.MM
+                    zeroOffsetsMode ? 0.0 : AutoConfig.Y_POD_OFFSET_MM
             );
             odo.setPosition(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0));
-            hubImu.resetYaw();
         }
 
         odo.update();
@@ -110,12 +103,13 @@ public class HardwareAndPinpointTuner extends OpMode {
         panels.addData("X (in) [+forward]", String.format(Locale.US, "%.2f", pose.getX(DistanceUnit.INCH)));
         panels.addData("Y (in) [+left]", String.format(Locale.US, "%.2f", pose.getY(DistanceUnit.INCH)));
         panels.addData("Heading (deg) [+CCW]", String.format(Locale.US, "%.2f", pose.getHeading(AngleUnit.DEGREES)));
-        double hubHeadingDeg = hubImu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        panels.addData("Hub IMU heading (deg) [+CCW]", String.format(Locale.US, "%.2f", hubHeadingDeg));
+        panels.addData("Heading source", odo.usingHubHeading() ? "HUB IMU" : "PINPOINT IMU");
+        panels.addData("Hub IMU heading (deg)", String.format(Locale.US, "%.2f", odo.hubHeadingDeg()));
+        panels.addData("Pinpoint IMU heading (deg)", String.format(Locale.US, "%.2f", odo.pinpointHeadingDeg()));
         panels.addData("Pinpoint - hub heading (deg)", String.format(Locale.US, "%.2f",
-                AngleUnit.normalizeDegrees(pose.getHeading(AngleUnit.DEGREES) - hubHeadingDeg)));
-        panels.addData("Raw Encoders (X, Y)", odo.getEncoderX() + ", " + odo.getEncoderY());
-        panels.addData("Device Status", String.valueOf(odo.getDeviceStatus()));
+                AngleUnit.normalizeDegrees(odo.pinpointHeadingDeg() - odo.hubHeadingDeg())));
+        panels.addData("Raw Encoders (X, Y)", odo.pinpoint().getEncoderX() + ", " + odo.pinpoint().getEncoderY());
+        panels.addData("Device Status", String.valueOf(odo.pinpoint().getDeviceStatus()));
 
         if (hasCalculatedOffsets) {
             panels.addData("Computed X_POD_OFFSET_MM", String.format(Locale.US, "%.2f", calcXOffsetMM));

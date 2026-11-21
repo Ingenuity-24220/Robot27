@@ -143,4 +143,16 @@ public class AutoConfig {
         imu.resetYaw();
         return imu;
     }
+
+    // --- Heading source (see util/Odometry.java) ---
+    // true: ignore the Pinpoint's IMU; compute X/Y from its raw pod counts with the hub IMU's heading.
+    // false: use the Pinpoint's own pose.
+    public static boolean USE_HUB_HEADING = true;
+
+    // Used only when USE_HUB_HEADING is true. goBILDA 4-bar pod: 19.89436789 ticks/mm
+    // (swingarm pod: 13.26291192). Signs: +1 if "Raw Encoders" X goes up when pushing the robot
+    // forward and Y goes up when pushing it left in Tuner 1; otherwise -1.
+    public static double TICKS_PER_MM = 19.89436789;
+    public static double X_ENC_SIGN = 1;
+    public static double Y_ENC_SIGN = 1;
 }

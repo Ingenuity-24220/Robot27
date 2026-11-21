@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -11,9 +10,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
 import org.firstinspires.ftc.teamcode.util.DataLogger;
+import org.firstinspires.ftc.teamcode.util.Odometry;
 
 import java.util.Locale;
 
@@ -34,7 +33,7 @@ public class CustomAutoRunner extends LinearOpMode {
     private static final double DEFAULT_SWITCH_RADIUS_IN = 4.0;
 
     private DcMotor[] motors;
-    private GoBildaPinpointDriver odo;
+    private Odometry odo;
     private TelemetryManager panels;
     private final ElapsedTime clock = new ElapsedTime();
     private DataLogger log;
@@ -46,14 +45,15 @@ public class CustomAutoRunner extends LinearOpMode {
     @Override
     public void runOpMode() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
-        odo = AutoConfig.initPinpoint(hardwareMap, false);
+        odo = new Odometry(hardwareMap);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
         log = new DataLogger("auto",
                 "t", "step", "passThrough", "targetX", "targetY", "targetH",
                 "x", "y", "heading", "velX", "velY", "velH",
                 "fwdErr", "leftErr", "headErrDeg", "dist", "dFwd", "dLeft", "dHead",
                 "fwdOut", "leftOut", "turnOut", "maxPower",
-                "kP_xy", "kD_xy", "kS_xy", "kP_h", "kD_h", "kS_h", "D_FILTER");
+                "kP_xy", "kD_xy", "kS_xy", "kP_h", "kD_h", "kS_h", "D_FILTER",
+                "hubHeading", "pinpointHeading", "useHubHeading");
         try {
             runAuto();
         } finally {
@@ -239,12 +239,12 @@ public class CustomAutoRunner extends LinearOpMode {
             Pose2D pose = odo.getPosition();
             log.log(now, step, switchRadiusIn > 0 ? 1 : 0, tx, ty, tHeadingDeg,
                     pose.getX(DistanceUnit.INCH), pose.getY(DistanceUnit.INCH), pose.getHeading(AngleUnit.DEGREES),
-                    odo.getVelX(DistanceUnit.INCH), odo.getVelY(DistanceUnit.INCH),
-                    odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES),
+                    odo.velX(), odo.velY(), odo.velH(),
                     fwdErr, leftErr, Math.toDegrees(headErr), dist, dFwd, dLeft, Math.toDegrees(dHead),
                     fwd, left, turn, maxPower,
                     AutoConfig.kP_xy, AutoConfig.kD_xy, AutoConfig.kS_xy,
-                    AutoConfig.kP_h, AutoConfig.kD_h, AutoConfig.kS_h, AutoConfig.D_FILTER);
+                    AutoConfig.kP_h, AutoConfig.kD_h, AutoConfig.kS_h, AutoConfig.D_FILTER,
+                    odo.hubHeadingDeg(), odo.pinpointHeadingDeg(), odo.usingHubHeading() ? 1 : 0);
 
             panels.addData("target", String.format(Locale.US, "(%.1f, %.1f, %.1f)", tx, ty, tHeadingDeg));
             panels.addData("posError (in)", String.format(Locale.US, "%.2f", dist));
@@ -269,6 +269,7 @@ public class CustomAutoRunner extends LinearOpMode {
     private void showPose(String state) {
         Pose2D pose = odo.getPosition();
         panels.addData("State", state);
+        panels.addData("Heading source", odo.usingHubHeading() ? "HUB IMU" : "PINPOINT IMU");
         panels.addData("Log file", log.path());
         panels.addData("x", pose.getX(DistanceUnit.INCH));
         panels.addData("y", pose.getY(DistanceUnit.INCH));
