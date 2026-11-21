@@ -45,6 +45,16 @@ public class CustomAutoRunner extends LinearOpMode {
     // Max power for the whole routine. Change it during INIT with D-pad Up/Down (0.2 to 1.0).
     private double speed = 0.6;
 
+    // Routine to run. Change it during INIT with D-pad Left/Right.
+    private static final String[] ROUTINES = {
+            "Example: line, curve, turn, back to start",
+            "Lap around center, strafing (heading 180)",
+            "Lap around center, facing travel direction",
+            "S-curve up the left side, turn while driving back",
+            "Example x3 (repeatability)",
+    };
+    private int routine = 0;
+
     @Override
     public void runOpMode() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
@@ -73,8 +83,11 @@ public class CustomAutoRunner extends LinearOpMode {
         while (opModeInInit()) {
             if (gamepad1.dpadUpWasPressed()) speed = Math.min(1.0, Math.round(speed * 10 + 1) / 10.0);
             if (gamepad1.dpadDownWasPressed()) speed = Math.max(0.2, Math.round(speed * 10 - 1) / 10.0);
+            if (gamepad1.dpadRightWasPressed()) routine = (routine + 1) % ROUTINES.length;
+            if (gamepad1.dpadLeftWasPressed()) routine = (routine - 1 + ROUTINES.length) % ROUTINES.length;
             odo.update();
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
+            panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
             showPose("INIT - keep robot still");
         }
         if (isStopRequested()) return;
@@ -85,14 +98,57 @@ public class CustomAutoRunner extends LinearOpMode {
         runPath();
     }
 
-    /** The routine. Example below reproduces meowAuto's line + curve to park. */
+    /**
+     * The routine picked during INIT. All start at (startX, startY, startH) and end back there,
+     * so the end position can be checked against tape on the floor.
+     *
+     * Field keep-out used for the test routines (this season's field, Pedro coordinates):
+     * center structure x 52-92, y 46-98; robot center stays 12 in or more from it and the walls.
+     */
     private void runPath() {
+        switch (routine) {
+            case 0: example(); break;
+            case 1: lap(false); break;
+            case 2: lap(true); break;
+            case 3: sCurve(); break;
+            case 4: for (int i = 0; i < 3 && opModeIsActive(); i++) example(); break;
+        }
+    }
+
+    /** meowAuto's line + curve to park, a turn, then back to the start. */
+    private void example() {
         driveTo(23.026, 34.411, 180, speed);
         followBezier(23.026, 34.411, 44.315, 47.793, 23.026, 65.816, 180, 180, speed);
         waitSec(0.25);
         turnTo(90, speed);
         turnTo(180, speed);
         driveTo(23.026, 34.411, 180, speed);
+        driveTo(startX, startY, startH, speed);
+    }
+
+    /**
+     * Clockwise lap around the center structure through corners (28, 28), (28, 116), (116, 116),
+     * (116, 28) without stopping. Tests long full-speed legs and carrying speed into corners.
+     * faceTravel = false keeps heading 180, so the legs are driven forward, strafing, and backward.
+     * faceTravel = true turns to face each leg (90, 0, -90, 180), turning while moving at corners.
+     */
+    private void lap(boolean faceTravel) {
+        driveThrough(28, 28, 180, speed);
+        driveThrough(28, 116, faceTravel ? 90 : 180, speed);
+        driveThrough(116, 116, faceTravel ? 0 : 180, speed);
+        driveThrough(116, 28, faceTravel ? -90 : 180, speed);
+        driveTo(startX, startY, startH, speed);
+    }
+
+    /**
+     * Two chained curves up the left side while turning 180 -> 135 -> 90, then straight back down
+     * while turning 90 -> 180 at the same time, and back to the start.
+     */
+    private void sCurve() {
+        driveTo(28, 28, 180, speed);
+        followBezier(28, 28, 18, 52, 24, 72, 180, 135, speed);
+        followBezier(24, 72, 40, 96, 24, 116, 135, 90, speed);
+        driveTo(28, 28, 180, speed);
         driveTo(startX, startY, startH, speed);
     }
 
@@ -105,9 +161,17 @@ public class CustomAutoRunner extends LinearOpMode {
         odo.update();
     }
 
-    /** Drive to a pose and settle there, with default tolerances and a 3 s timeout. */
+    /** Drive to a pose and settle there, with default tolerances and a timeout that scales with distance. */
     public boolean driveTo(double x, double y, double headingDeg, double maxPower) {
-        return driveTo(x, y, headingDeg, maxPower, AutoConfig.POS_TOL_IN, AutoConfig.HEAD_TOL_DEG, 3.0);
+        return driveTo(x, y, headingDeg, maxPower, AutoConfig.POS_TOL_IN, AutoConfig.HEAD_TOL_DEG,
+                timeoutFor(x, y, maxPower));
+    }
+
+    /** At least 3 s, plus time for long moves at low power (assumes 20 in/s per unit of power). */
+    private double timeoutFor(double x, double y, double maxPower) {
+        Pose2D pose = odo.getPosition();
+        double dist = Math.hypot(x - pose.getX(DistanceUnit.INCH), y - pose.getY(DistanceUnit.INCH));
+        return Math.max(3.0, 1.0 + dist / (20.0 * Math.max(maxPower, 0.1)));
     }
 
     /**
@@ -128,7 +192,7 @@ public class CustomAutoRunner extends LinearOpMode {
      * required to be reached. Motors keep running into the next step.
      */
     public boolean driveThrough(double x, double y, double headingDeg, double maxPower, double switchRadiusIn) {
-        return move(x, y, headingDeg, maxPower, 0, 0, 3.0, switchRadiusIn);
+        return move(x, y, headingDeg, maxPower, 0, 0, timeoutFor(x, y, maxPower), switchRadiusIn);
     }
 
     public boolean driveThrough(double x, double y, double headingDeg, double maxPower) {

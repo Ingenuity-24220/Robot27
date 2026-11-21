@@ -94,8 +94,11 @@ private void runPath() {
 }
 ```
 
-The included example is meowAuto's line + curve to park. Place the robot at the start pose,
-INIT, wait 1 s, then START.
+During INIT, D-pad Up/Down sets the speed (0.2-1.0) and D-pad Left/Right picks the routine:
+the example (meowAuto's line + curve, a turn, back to start), two laps around the center
+structure (strafing, or facing the travel direction), an S-curve with turning while driving,
+and the example three times in a row. Every routine ends back at the start pose, so tape the
+start position and compare. Place the robot at the start pose, INIT, wait 1 s, then START.
 
 ### API
 
