@@ -44,12 +44,12 @@ public class Outtake {
         this.close("nectar");
         this.close("pollen");
     }
-    public void start(String type) {
+    public void start(String type, double power) {
         if (Objects.equals(type, "nectar")) {
-            nectarMotor.setPower(0.62);
+            nectarMotor.setPower(power); // 0.62
             this.isNectarRunning = true;
         } else {
-            pollenMotor.setPower(0.725);
+            pollenMotor.setPower(power); // 0.725
             this.isPollenRunning = true;
         }
     }

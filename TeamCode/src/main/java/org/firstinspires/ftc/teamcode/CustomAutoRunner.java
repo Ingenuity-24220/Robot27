@@ -154,8 +154,8 @@ public class CustomAutoRunner extends LinearOpMode {
      * robot is. With it false, the routine ends at the first path that fails. STOP always ends it.
      */
     private void teamPath() {
-        outtake.start("pollen");
-        waitSec(1.0);
+        outtake.start("pollen", 0.8);
+        waitSec(2.0);
         outtake.open("pollen");
         waitSec(1.5);
         outtake.stop("pollen");
@@ -178,9 +178,9 @@ public class CustomAutoRunner extends LinearOpMode {
 //        intake.stop();
         // path6: -> (56.58, 120.20), heading 270
         followLine(56.5847, 120.2031, 270, 270, speed);
-        outtake.start("pollen");
-        outtake.start("nectar");
-        waitSec(1.5);
+        outtake.start("pollen", 0.9);
+        outtake.start("nectar", 0.9);
+        waitSec(2.0);
         outtake.open("pollen");
         outtake.open("nectar");
         waitSec(2.0);

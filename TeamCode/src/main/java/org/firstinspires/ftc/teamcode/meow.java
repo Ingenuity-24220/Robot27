@@ -104,7 +104,7 @@ public class meow extends OpMode {
             if (outtake.isNectarRunning) {
                 outtake.stop("nectar");
             } else {
-                outtake.start("nectar");
+                outtake.start("nectar", 0.62);
             }
         }
 
@@ -112,7 +112,7 @@ public class meow extends OpMode {
             if (outtake.isPollenRunning) {
                 outtake.stop("pollen");
             } else {
-                outtake.start("pollen");
+                outtake.start("pollen", 0.725);
             }
         }
 
