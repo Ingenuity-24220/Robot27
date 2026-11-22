@@ -22,9 +22,10 @@ Pedro's frame, so poses from the Pedro visualizer work as-is:
 - Field is 0-144 in on both axes, `(0, 0)` is the bottom-left corner.
 - +X right, +Y up. Heading 0° faces +X, CCW is positive.
 - Mirror for the other alliance: `x → 144 − x`, `heading → 180 − heading`.
-- In Custom Auto Runner, every heading is the direction the **outtake** faces
+- In the team path (routine 6), every heading is the direction the **outtake** faces
   (`AutoConfig.AUTO_FRONT_OFFSET_DEG = 180`). Set it to 0 to use the intake side instead.
-  The tuners and TeleOp are unaffected.
+  Test routines 1-5, the tuners, and TeleOp use the intake side as the front.
+- When AUTO ends (or STOP is pressed), the drive and outtake motors stop and both gates close.
 
 ## Step 1: Hardware & Pinpoint Tuner
 

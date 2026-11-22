@@ -60,6 +60,10 @@ public class CustomAutoRunner extends LinearOpMode {
     };
     private int routine = 0;
 
+    // Which side headings refer to: AutoConfig.AUTO_FRONT_OFFSET_DEG (outtake) for the team path,
+    // 0 (intake side) for the test routines 1-5, so those behave as before. Set by startPoseFor().
+    private double frontOffsetDeg = 0;
+
     @Override
     public void runOpMode() {
         motors = AutoConfig.initDriveMotors(hardwareMap);
@@ -77,7 +81,12 @@ public class CustomAutoRunner extends LinearOpMode {
         try {
             runAuto();
         } finally {
+            // End of AUTO, including STOP: drive motors and outtake off, both gates closed.
             AutoConfig.stop(motors);
+            outtake.stop("pollen");
+            outtake.stop("nectar");
+            outtake.close("pollen");
+            outtake.close("nectar");
             log.close();
         }
     }
@@ -96,7 +105,7 @@ public class CustomAutoRunner extends LinearOpMode {
             odo.update();
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
-            panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f), outtake facing %.0f", startX, startY, startH));
+            panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f), %s facing %.0f", startX, startY, frontOffsetDeg != 0 ? "outtake" : "intake", startH));
             showPose("INIT - keep robot still");
         }
         if (isStopRequested()) return;
@@ -129,8 +138,10 @@ public class CustomAutoRunner extends LinearOpMode {
     private void startPoseFor(int r) {
         if (r == 5) {
             startX = 57.8787; startY = 10.5088; startH = 90;
+            frontOffsetDeg = AutoConfig.AUTO_FRONT_OFFSET_DEG;
         } else {
             startX = 59.521; startY = 34.411; startH = 180.0;
+            frontOffsetDeg = 0;
         }
     }
 
@@ -171,10 +182,9 @@ public class CustomAutoRunner extends LinearOpMode {
         outtake.start("nectar");
         waitSec(1.5);
         outtake.open("pollen");
-        outtake.start("nectar");
+        outtake.open("nectar");
         waitSec(2.0);
-        outtake.close("pollen");
-        outtake.close("nectar");
+        // runOpMode's finally then stops both outtake motors and closes both gates.
     }
 
     /** After a failed path: continue only if the option is on and STOP wasn't pressed. */
@@ -234,10 +244,10 @@ public class CustomAutoRunner extends LinearOpMode {
     // Movement API
     // ------------------------------------------------------------------------------------
 
-    /** headingDeg is the direction the outtake faces (see AutoConfig.AUTO_FRONT_OFFSET_DEG). */
+    /** headingDeg is the direction the routine's front faces (see frontOffsetDeg). */
     public void setStartPose(double x, double y, double headingDeg) {
         odo.setPosition(new Pose2D(DistanceUnit.INCH, x, y, AngleUnit.DEGREES,
-                AngleUnit.normalizeDegrees(headingDeg + AutoConfig.AUTO_FRONT_OFFSET_DEG)));
+                AngleUnit.normalizeDegrees(headingDeg + frontOffsetDeg)));
         odo.update();
     }
 
@@ -332,8 +342,8 @@ public class CustomAutoRunner extends LinearOpMode {
      */
     private boolean move(double tx, double ty, double tHeadingDeg, double maxPower,
                          double tolIn, double tolDeg, double timeoutSec, double switchRadiusIn) {
-        // Routine headings are for the outtake side; the pose heading is the physical front's.
-        tHeadingDeg = AngleUnit.normalizeDegrees(tHeadingDeg + AutoConfig.AUTO_FRONT_OFFSET_DEG);
+        // Routine headings refer to the routine's front (frontOffsetDeg); the pose heading is the intake side's.
+        tHeadingDeg = AngleUnit.normalizeDegrees(tHeadingDeg + frontOffsetDeg);
         double tH = Math.toRadians(tHeadingDeg);
         double start = clock.seconds();
         double settledSince = -1;
@@ -454,8 +464,8 @@ public class CustomAutoRunner extends LinearOpMode {
         panels.addData("Log file", log.path());
         panels.addData("x", pose.getX(DistanceUnit.INCH));
         panels.addData("y", pose.getY(DistanceUnit.INCH));
-        panels.addData("heading (outtake)", AngleUnit.normalizeDegrees(
-                pose.getHeading(AngleUnit.DEGREES) - AutoConfig.AUTO_FRONT_OFFSET_DEG));
+        panels.addData(frontOffsetDeg != 0 ? "heading (outtake)" : "heading", AngleUnit.normalizeDegrees(
+                pose.getHeading(AngleUnit.DEGREES) - frontOffsetDeg));
         panels.update(telemetry);
     }
 }

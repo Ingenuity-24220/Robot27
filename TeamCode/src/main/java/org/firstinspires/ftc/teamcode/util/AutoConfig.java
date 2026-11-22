@@ -167,7 +167,8 @@ public class AutoConfig {
     public static double BLOCKED_MIN_POWER = 0.12;   // ...while asking for at least this much power
 
     // --- Which side is the "front" in CustomAutoRunner (AUTO only; TeleOp is unaffected) ---
-    // Every heading in the AUTO routines (start pose, targets, turns) is the direction this side
-    // faces. 180 = the outtake, on the back of the robot. 0 = the intake/drive front.
+    // Every heading in the team path (routine 6: start pose, targets, turns) is the direction this
+    // side faces. 180 = the outtake, on the back of the robot. 0 = the intake/drive front.
+    // Test routines 1-5 always use the intake front.
     public static double AUTO_FRONT_OFFSET_DEG = 180;
 }
