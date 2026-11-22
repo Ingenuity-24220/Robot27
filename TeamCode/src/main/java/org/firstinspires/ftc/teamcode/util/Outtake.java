@@ -26,14 +26,14 @@ public class Outtake {
     public static double NOMINAL_VOLTAGE = 12.0;  // battery voltage kF refers to
     public static double READY_TOLERANCE = 40;    // ticks/s: "at speed" window
 
-    public static double NECTAR_VELOCITY = 0;     // ticks/s; 0 = use NECTAR_POWER instead
-    public static double NECTAR_KP = 0;
-    public static double NECTAR_KF = 0;
-    public static double NECTAR_POWER = 0.62;     // power the tuner measures kF at (TeleOp nectar power)
+    public static double NECTAR_VELOCITY = 1768.0;     // ticks/s; 0 = use NECTAR_POWER instead
+    public static double NECTAR_KP = 3.83; // 3.83
+    public static double NECTAR_KF = 12.55; // 12.55
+    public static double NECTAR_POWER = 0.675;     // power the tuner measures kF at (TeleOp nectar power)
 
-    public static double POLLEN_VELOCITY = 0;
-    public static double POLLEN_KP = 0;
-    public static double POLLEN_KF = 0;
+    public static double POLLEN_VELOCITY = 1676.00;
+    public static double POLLEN_KP = 3.54;
+    public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
 
     HardwareMap hardwareMap;
@@ -66,7 +66,8 @@ public class Outtake {
         nectarServo = hardwareMap.get(Servo.class, "nectarServo");
         battery = hardwareMap.voltageSensor.iterator().next();
 
-        pollenMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        pollenMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+
         for (DcMotorEx m : new DcMotorEx[]{pollenMotor, nectarMotor}) {
             m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT); // let flywheels coast down
         }

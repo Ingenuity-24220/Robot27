@@ -12,10 +12,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 //import com.qualcomm.hardware.limelightvision.LLStatus;
 //import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.ElapsedTime;
 //import com.qualcomm.robotcore.hardware.IMU;
 //import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 //import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 //import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.teamcode.util.DataLogger;
 import org.firstinspires.ftc.teamcode.util.Drivetrain;
 import org.firstinspires.ftc.teamcode.util.Intake;
 import org.firstinspires.ftc.teamcode.util.Localization;
@@ -40,6 +42,11 @@ public class meow extends OpMode {
 
     Outtake outtake;
 
+    DataLogger log;
+
+    final ElapsedTime clock = new ElapsedTime();
+
+
     @Override
     public void init() {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
@@ -48,10 +55,15 @@ public class meow extends OpMode {
         localizer = new Localization(hardwareMap, telemetry, panelsTelemetry);
         localizer.recalibrateOdometry(true);
         outtake = new Outtake(hardwareMap, telemetry);
+        log = new DataLogger("meow",
+                "t", "nectar_gate_open", "pollen_gate_open", "intake_spinning",
+                "nectar_speed", "pollen_speed", "axial", "lateral", "yaw");
     }
 
     @Override
     public void loop() {
+        double now = clock.seconds();
+
 //        Gamepad g1 = PanelsGamepad.INSTANCE.getFirstManager().asCombinedFTCGamepad(gamepad1);
 
         // preferably don't do this but for now as we would like to have the gamepad 2 keep this in
@@ -104,7 +116,7 @@ public class meow extends OpMode {
             if (outtake.isNectarRunning) {
                 outtake.stop("nectar");
             } else {
-                outtake.start("nectar", 0.62);
+                outtake.startAtSpeed("nectar");
             }
         }
 
@@ -112,7 +124,7 @@ public class meow extends OpMode {
             if (outtake.isPollenRunning) {
                 outtake.stop("pollen");
             } else {
-                outtake.start("pollen", 0.725);
+                outtake.startAtSpeed("pollen");
             }
         }
 
@@ -120,5 +132,19 @@ public class meow extends OpMode {
 
         telemetry.update();
 
+        log.log(now, outtake.isNectarOpen ? 1 : 0, outtake.isPollenOpen ? 1 : 0, intake.isRunning ? 1 : 0, outtake.velocity("nectar"), outtake.velocity("pollen"), axial, lateral, yaw);
+//                                "t", "nectar_gate_open", "pollen_gate_open", "intake_spinning",
+//                "nectar_speed", "pollen_speed", "axial", "lateral", "yaw");
+
+    }
+
+    @Override
+    public void stop() {
+        outtake.close("nectar");
+        outtake.close("pollen");
+        outtake.stop("nectar");
+        outtake.stop("pollen");
+        intake.stop();
+        log.close();
     }
 }
