@@ -39,8 +39,12 @@ public class Outtake {
     // --- Volleys: fire(type, n) lets n balls through one at a time (call update() every loop) ---
     // From meow_20261121_225627: nectar gate open 110-150 ms = 1 ball, <=105 ms often 0,
     // >=155 ms often 2. Each ball drops the flywheel ~300 ticks/s; it is back near target ~1 s later.
-    public static double NECTAR_PULSE_SEC = 0.12;
-    public static double POLLEN_PULSE_SEC = 0.15;  // not measured yet: tune from a pollen-only log
+    // Pulses run 0-31 ms longer than set (meow's loop is ~31 ms).
+    // Nectar: 1 ball for 110-150 ms; a 151 ms pulse let 2 through (meow_231449), so 0.11 keeps it under.
+    public static double NECTAR_PULSE_SEC = 0.11;
+    // Pollen's gate is slower: 150-180 ms mostly let 0 through (meow_231152); 237-274 ms let exactly
+    // 1 through 5 of 5 times and 343 ms let 2 through (meow_231535).
+    public static double POLLEN_PULSE_SEC = 0.25;
     public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
     public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long

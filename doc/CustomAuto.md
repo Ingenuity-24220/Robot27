@@ -176,9 +176,9 @@ ticks/s); you can wait on it before opening a gate.
 ball (`Outtake.fire(type, n)`; the OpMode must call `outtake.update()` every loop). Press again
 to cancel. During INIT, X switches the bumpers between volleys and "gate open while held".
 In Custom Auto Runner, X during INIT switches the team path's shooting between volleys at the
-tuned speed and the old fixed power (0.8 / 0.9) with the gates held open. Timing, in `util/Outtake.java`: `NECTAR_PULSE_SEC` 0.12 (from logs: 110-150 ms lets
+tuned speed and the old fixed power (0.8 / 0.9) with the gates held open. Timing, in `util/Outtake.java`: `NECTAR_PULSE_SEC` 0.11 (from logs: 110-150 ms lets
 exactly one ball through), next pulse after at least `MIN_GAP_SEC` 0.6 s once `atSpeed()`, or
-after `MAX_GAP_SEC` 1.0 s regardless. `POLLEN_PULSE_SEC` 0.15 is a guess until pollen is logged. Logs go to `outtake_<time>.csv`.
+after `MAX_GAP_SEC` 1.0 s regardless. `POLLEN_PULSE_SEC` 0.25 (pollen's gate needs ~240-280 ms for one ball). Logs go to `outtake_<time>.csv`.
 
 ## Troubleshooting
 
