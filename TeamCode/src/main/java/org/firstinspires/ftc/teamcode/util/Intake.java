@@ -16,13 +16,13 @@ public class Intake {
     }
 
     public void start() {
-        motorIntake.setPower(-1);
-        isRunning = true;
+        motorIntake.setPower(-0.6);
+        this.isRunning = true;
     }
 
     public void stop() {
         motorIntake.setPower(0);
-        isRunning = false;
+        this.isRunning = false;
     }
 
     public void reverse() {

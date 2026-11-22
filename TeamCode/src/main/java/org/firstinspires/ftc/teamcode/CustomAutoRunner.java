@@ -12,7 +12,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.util.AutoConfig;
 import org.firstinspires.ftc.teamcode.util.DataLogger;
+import org.firstinspires.ftc.teamcode.util.Intake;
 import org.firstinspires.ftc.teamcode.util.Localization;
+import org.firstinspires.ftc.teamcode.util.Outtake;
 
 import java.util.Locale;
 
@@ -35,6 +37,8 @@ public class CustomAutoRunner extends LinearOpMode {
     private DcMotor[] motors;
     private Localization odo;
     private TelemetryManager panels;
+    private Outtake outtake;
+    private Intake intake;
     private final ElapsedTime clock = new ElapsedTime();
     private DataLogger log;
     private int step = 0; // increments on every driveTo/driveThrough call
@@ -61,6 +65,8 @@ public class CustomAutoRunner extends LinearOpMode {
         motors = AutoConfig.initDriveMotors(hardwareMap);
         odo = new Localization(hardwareMap);
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
+        outtake = new Outtake(hardwareMap, telemetry);
+        intake = new Intake(hardwareMap);
         log = new DataLogger("auto",
                 "t", "step", "passThrough", "targetX", "targetY", "targetH",
                 "x", "y", "heading", "velX", "velY", "velH",
@@ -138,21 +144,41 @@ public class CustomAutoRunner extends LinearOpMode {
      * robot is. With it false, the routine ends at the first path that fails. STOP always ends it.
      */
     private void teamPath() {
+        outtake.start("pollen");
+        waitSec(1.0);
+        outtake.open("pollen");
+        waitSec(1.5);
+        outtake.stop("pollen");
+        outtake.close("pollen");
         // path1: (57.88, 10.51, 90) -> (57.92, 36.90, 90), linear
         if (!followLine(57.9167, 36.9032, 90, 90, speed) && !keepGoing()) return;
         // path2: -> (10.49, 11.05), linear 90 -> 270 (exactly 180 deg: turns clockwise through 0)
         if (!followLine(10.491, 11.053, 90, 270, speed) && !keepGoing()) return;
+//        intake.start();
+//        waitSec(2.0);
+//        intake.stop();
         // path3: -> (35.19, 127.80), linear 270 -> 310
         if (!followLine(35.1918, 127.804, 270, 310, speed) && !keepGoing()) return;
         // path4: -> (46.86, 121.15), linear 310 -> 90 (+140 deg, counterclockwise)
         if (!followLine(46.858, 121.1472, 310, 90, speed) && !keepGoing()) return;
         // path5: -> (46.92, 131.74), tangent (+Y, ~89.7 deg). Drives into the flower to intake.
         if (!driveTo(46.9181, 131.74, 89.6746, speed) && !keepGoing()) return;
+//        intake.start();
+//        waitSec(3.0);
+//        intake.stop();
         // path6: -> (46.91, 118.20), reverseTangent: driving backward, still facing +Y (~90 deg)
         if (!driveTo(46.9078, 118.2035, 89.9561, speed) && !keepGoing()) return;
         // path7: -> (58.42, 119.00), linear 0 -> 270. Its start heading (0) differs from where
         // path6 ends (90), as in the Pedro file, so the robot first swings toward 0 then to 270.
         followLine(58.4153, 118.9954, 0, 270, speed);
+        outtake.start("pollen");
+        outtake.start("nectar");
+        waitSec(1.5);
+        outtake.open("pollen");
+        outtake.start("nectar");
+        waitSec(2.0);
+        outtake.close("pollen");
+        outtake.close("nectar");
     }
 
     /** After a failed path: continue only if the option is on and STOP wasn't pressed. */
