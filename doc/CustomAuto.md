@@ -122,6 +122,56 @@ Every move returns `false` on timeout or STOP, and all loops stop when STOP is p
 
 To run intake/outtake, call their methods between moves in `runPath()`.
 
+### Team path start (routine 6)
+
+Put the robot against the bottom (audience, y = 0) wall with the **intake end touching the wall**
+and the outtake facing 90° (toward +Y), centered at x = 57.9. Start Y is
+`AutoConfig.WALL_TO_CENTER_IN` (default 9.0 = half an 18 in robot): measure the distance from the
+robot's center to the intake-side edge and set it, or every target will be off by the difference.
+
+## Outtake Tuner
+
+`Outtake.start(type, power)` runs a flywheel at a fixed power, as before (TeleOp 0.62 / 0.725,
+AUTO 0.8 / 0.9). A fixed power gives a different speed as the battery drains and recovers slowly
+after a shot. `Outtake.startAtSpeed(type)` instead holds a tuned **speed** (ticks/s) with the motor
+encoder. Nothing uses `startAtSpeed` yet: once a flywheel is tuned, swap a `start(..., power)` call
+for `startAtSpeed(...)` where you want consistent shots. Until tuned (`*_VELOCITY = 0` in
+`util/Outtake.java`), `startAtSpeed` falls back to `NECTAR_POWER` / `POLLEN_POWER`.
+
+Needs: an encoder cable from each flywheel motor to its motor port. Use a charged battery.
+
+| Button | Action |
+|---|---|
+| X | Switch flywheel (nectar = `outtakeMotor`, pollen = `outtakeMini`) |
+| B | Measure kF (runs 3 s at `NECTAR_POWER` / `POLLEN_POWER`) |
+| Y | Spin up / stop at the target speed |
+| D-pad Up/Down | Target speed ±20 ticks/s |
+| LB + D-pad Up/Down | kF ±1% |
+| D-pad Right/Left | kP ×1.25 / ÷1.25 |
+| RB (hold) | Open the gate to fire |
+
+In Panels, graph `target` and `velocity`. For each flywheel:
+
+1. **Measure kF.** Press **B**. It sets kF, sets the target to the speed the old power gave
+   (so shots should match that power; set `*_POWER` to the power you shoot at, e.g. 0.9 for
+   AUTO, before measuring), and sets kP = 0.1 × kF.
+   - "No speed reading": the encoder cable is missing.
+   - "Velocity is negative": the encoder counts backward; flip the motor's direction in `Outtake`.
+2. **Check F alone.** Set kP to near 0 (D-pad Left several times), press **Y**. The speed should
+   level off a little below the target. If it's well above or below, adjust kF with LB + D-pad.
+3. **Raise kP** (D-pad Right) until the speed reaches the target quickly. Watch:
+   - **Overshoot** above ~40 ticks/s, or the line oscillates: kP too high, press D-pad Left.
+   - **Rise time** slow, or it sits below the target: kP too low.
+4. **Shot test.** With it at speed, feed a ball and hold **RB**. Look at **Shot dip** and
+   **Shot recovery**. Raise kP until recovery is fast without overshoot afterward. Recovery time
+   is how long to wait between shots.
+5. **Find the right speed.** Change the target with D-pad Up/Down until shots land where you want.
+6. **Copy the three lines** under "Copy into Outtake.java" (`*_VELOCITY`, `*_KP`, `*_KF`) into
+   `util/Outtake.java`, then do the other flywheel (X).
+
+`Outtake.atSpeed("nectar")` returns true when that flywheel is within `READY_TOLERANCE` (40
+ticks/s); you can wait on it before opening a gate. Logs go to `outtake_<time>.csv`.
+
 ## Troubleshooting
 
 - **Robot drives away from the target or spins forever:** a wheel or pod direction is wrong. Redo Step 1.
