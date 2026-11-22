@@ -171,9 +171,4 @@ public class AutoConfig {
     // side faces. 180 = the outtake, on the back of the robot. 0 = the intake/drive front.
     // Test routines 1-5 always use the intake front.
     public static double AUTO_FRONT_OFFSET_DEG = 180;
-
-    // Team path start: the robot's intake end touches the y = 0 wall, so the start Y is the distance
-    // from the robot's tracking center (the point odometry reports) to the intake-side edge.
-    // 9.0 = half of an 18 in robot. Measure yours and change it.
-    public static double WALL_TO_CENTER_IN = 9.0;
 }

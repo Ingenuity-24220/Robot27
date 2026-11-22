@@ -56,7 +56,7 @@ public class CustomAutoRunner extends LinearOpMode {
             "Lap around center, facing travel direction",
             "S-curve up the left side, turn while driving back",
             "Example x3 (repeatability)",
-            "Team path (6 Pedro lines), starts against the wall at x 57.9, outtake facing 90",
+            "Team path (6 Pedro lines), starts at (57.9, 10.5), outtake facing 90",
     };
     private int routine = 0;
 
@@ -137,8 +137,7 @@ public class CustomAutoRunner extends LinearOpMode {
     /** Sets startX/Y/H for a routine. Every routine uses the meowAuto start except the team path. */
     private void startPoseFor(int r) {
         if (r == 5) {
-            // Touching the audience wall (y = 0) with the intake end; only Y moved from Pedro's 10.5088.
-            startX = 57.8787; startY = AutoConfig.WALL_TO_CENTER_IN; startH = 90;
+            startX = 57.8787; startY = 10.5088; startH = 90;
             frontOffsetDeg = AutoConfig.AUTO_FRONT_OFFSET_DEG;
         } else {
             startX = 59.521; startY = 34.411; startH = 180.0;
