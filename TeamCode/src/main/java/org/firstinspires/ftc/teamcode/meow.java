@@ -48,6 +48,10 @@ public class meow extends OpMode {
 
     static final int BALLS_PER_VOLLEY = 4;
 
+    // Bumpers: true = fire a volley (one gate pulse per ball); false = gate open while held.
+    // Toggle during INIT with X.
+    boolean useVolleys = true;
+
 
     @Override
     public void init() {
@@ -60,6 +64,14 @@ public class meow extends OpMode {
         log = new DataLogger("meow",
                 "t", "nectar_gate_open", "pollen_gate_open", "intake_spinning",
                 "nectar_speed", "pollen_speed", "axial", "lateral", "yaw");
+    }
+
+    @Override
+    public void init_loop() {
+        if (gamepad1.xWasPressed()) useVolleys = !useVolleys;
+        telemetry.addData("Bumpers (X to change)", useVolleys
+                ? "fire " + BALLS_PER_VOLLEY + "-ball volley" : "gate open while held");
+        telemetry.update();
     }
 
     @Override
@@ -83,6 +95,7 @@ public class meow extends OpMode {
 
         telemetry.addData("Nectar gate open", outtake.isNectarOpen);
         telemetry.addData("Pollen gate open", outtake.isPollenOpen);
+        telemetry.addData("Bumpers", useVolleys ? "volley" : "hold to open");
 
 
         if (gamepad1.aWasPressed()) {
@@ -97,14 +110,17 @@ public class meow extends OpMode {
             intake.reverse();
         }
 
-        // Bumpers fire a volley of BALLS_PER_VOLLEY balls, one gate pulse per ball (see Outtake.fire).
-        // Press again during a volley to cancel it.
-        if (gamepad1.rightBumperWasPressed()) {
-            outtake.fire("pollen", BALLS_PER_VOLLEY);
-        }
-
-        if (gamepad1.leftBumperWasPressed()) {
-            outtake.fire("nectar", BALLS_PER_VOLLEY);
+        if (useVolleys) {
+            // Bumpers fire a volley of BALLS_PER_VOLLEY balls, one gate pulse per ball (see Outtake.fire).
+            // Press again during a volley to cancel it.
+            if (gamepad1.rightBumperWasPressed()) outtake.fire("pollen", BALLS_PER_VOLLEY);
+            if (gamepad1.leftBumperWasPressed()) outtake.fire("nectar", BALLS_PER_VOLLEY);
+        } else {
+            // Gate open while the bumper is held.
+            if (gamepad1.rightBumperWasPressed()) outtake.open("pollen");
+            if (gamepad1.rightBumperWasReleased()) outtake.close("pollen");
+            if (gamepad1.leftBumperWasPressed()) outtake.open("nectar");
+            if (gamepad1.leftBumperWasReleased()) outtake.close("nectar");
         }
 
         outtake.update();

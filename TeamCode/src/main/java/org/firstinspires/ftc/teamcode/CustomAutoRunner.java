@@ -60,6 +60,12 @@ public class CustomAutoRunner extends LinearOpMode {
     };
     private int routine = 0;
 
+    // Shooting in the team path. Toggle during INIT with X.
+    // true: Outtake.fire() volleys at the tuned speed (startAtSpeed), one gate pulse per ball.
+    // false: the old way, fixed power (0.8 / 0.9) and the gates held open.
+    private boolean useVolleys = true;
+    private static final int BALLS_PER_VOLLEY = 4;
+
     // Which side headings refer to: AutoConfig.AUTO_FRONT_OFFSET_DEG (outtake) for the team path,
     // 0 (intake side) for the test routines 1-5, so those behave as before. Set by startPoseFor().
     private double frontOffsetDeg = 0;
@@ -101,10 +107,13 @@ public class CustomAutoRunner extends LinearOpMode {
             if (gamepad1.dpadDownWasPressed()) speed = Math.max(0.2, Math.round(speed * 10 - 1) / 10.0);
             if (gamepad1.dpadRightWasPressed()) routine = (routine + 1) % ROUTINES.length;
             if (gamepad1.dpadLeftWasPressed()) routine = (routine - 1 + ROUTINES.length) % ROUTINES.length;
+            if (gamepad1.xWasPressed()) useVolleys = !useVolleys;
             startPoseFor(routine);
             odo.update();
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
+            panels.addData("Shooting (X)", useVolleys
+                    ? BALLS_PER_VOLLEY + "-ball volleys at tuned speed" : "fixed power, gates held open");
             panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f), %s facing %.0f", startX, startY, frontOffsetDeg != 0 ? "outtake" : "intake", startH));
             showPose("INIT - keep robot still");
         }
@@ -155,12 +164,17 @@ public class CustomAutoRunner extends LinearOpMode {
      * robot is. With it false, the routine ends at the first path that fails. STOP always ends it.
      */
     private void teamPath() {
-        outtake.start("pollen", 0.8);
-        waitSec(2.0);
-        outtake.open("pollen");
-        waitSec(1.5);
-        outtake.stop("pollen");
-        outtake.close("pollen");
+        if (useVolleys) {
+            volley(true, false);
+            outtake.stop("pollen");
+        } else {
+            outtake.start("pollen", 0.8);
+            waitSec(2.0);
+            outtake.open("pollen");
+            waitSec(1.5);
+            outtake.stop("pollen");
+            outtake.close("pollen");
+        }
         // path1: (57.88, 10.51) -> (57.92, 36.90), heading 90
         if (!followLine(57.9167, 36.9032, 90, 90, speed) && !keepGoing()) return;
         // path2: -> (10.49, 11.03), heading 90
@@ -179,13 +193,36 @@ public class CustomAutoRunner extends LinearOpMode {
 //        intake.stop();
         // path6: -> (56.58, 120.20), heading 270
         followLine(56.5847, 120.2031, 270, 270, speed);
-        outtake.start("pollen", 0.9);
-        outtake.start("nectar", 0.9);
-        waitSec(2.0);
-        outtake.open("pollen");
-        outtake.open("nectar");
-        waitSec(2.0);
+        if (useVolleys) {
+            volley(true, true);
+        } else {
+            outtake.start("pollen", 0.9);
+            outtake.start("nectar", 0.9);
+            waitSec(2.0);
+            outtake.open("pollen");
+            outtake.open("nectar");
+            waitSec(2.0);
+        }
         // runOpMode's finally then stops both outtake motors and closes both gates.
+    }
+
+    /**
+     * Fires BALLS_PER_VOLLEY balls from each chosen flywheel (Outtake.fire: spin up to the tuned
+     * speed, then one gate pulse per ball) and waits, stopped, until done or 8 s have passed.
+     */
+    private void volley(boolean pollen, boolean nectar) {
+        if (pollen) outtake.fire("pollen", BALLS_PER_VOLLEY);
+        if (nectar) outtake.fire("nectar", BALLS_PER_VOLLEY);
+        AutoConfig.stop(motors);
+        double end = clock.seconds() + 8.0;
+        while (opModeIsActive() && clock.seconds() < end
+                && (outtake.isFiring("pollen") || outtake.isFiring("nectar"))) {
+            outtake.update();
+            odo.update();
+            showPose("SHOOTING");
+        }
+        outtake.cancelFire("pollen");
+        outtake.cancelFire("nectar");
     }
 
     /** After a failed path: continue only if the option is on and STOP wasn't pressed. */
