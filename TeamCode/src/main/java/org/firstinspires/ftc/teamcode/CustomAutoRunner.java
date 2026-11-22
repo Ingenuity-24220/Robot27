@@ -56,7 +56,7 @@ public class CustomAutoRunner extends LinearOpMode {
             "Lap around center, facing travel direction",
             "S-curve up the left side, turn while driving back",
             "Example x3 (repeatability)",
-            "Team path (7 Pedro lines), starts at (57.9, 10.5) facing 90",
+            "Team path (6 Pedro lines), starts at (57.9, 10.5), outtake facing 90",
     };
     private int routine = 0;
 
@@ -96,7 +96,7 @@ public class CustomAutoRunner extends LinearOpMode {
             odo.update();
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
-            panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f) facing %.0f", startX, startY, startH));
+            panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f), outtake facing %.0f", startX, startY, startH));
             showPose("INIT - keep robot still");
         }
         if (isStopRequested()) return;
@@ -135,10 +135,9 @@ public class CustomAutoRunner extends LinearOpMode {
     }
 
     /**
-     * The team's Pedro paths (Paths.java), ported one to one. Each Pedro line ends with a stop and
-     * settle here (driveTo), which is where shooting will go. Pedro heading modes:
-     * linear -> followLine (heading changes evenly along the line); tangent / reverseTangent on a
-     * straight line -> a constant heading along / against the direction of travel.
+     * The team's Pedro paths (Paths.java), ported one to one. Every path is a line with linear
+     * heading -> followLine (heading changes evenly along the line, shortest way), which ends
+     * with a stop and settle. Headings are the direction the outtake faces (AUTO_FRONT_OFFSET_DEG).
      * With AutoConfig.CONTINUE_IF_BLOCKED, a path that gets blocked (path 5 intentionally drives
      * into the flower to intake) ends after BLOCKED_SEC and the next path starts from wherever the
      * robot is. With it false, the routine ends at the first path that fails. STOP always ends it.
@@ -150,27 +149,24 @@ public class CustomAutoRunner extends LinearOpMode {
         waitSec(1.5);
         outtake.stop("pollen");
         outtake.close("pollen");
-        // path1: (57.88, 10.51, 90) -> (57.92, 36.90, 90), linear
+        // path1: (57.88, 10.51) -> (57.92, 36.90), heading 90
         if (!followLine(57.9167, 36.9032, 90, 90, speed) && !keepGoing()) return;
-        // path2: -> (10.49, 11.05), linear 90 -> 270 (exactly 180 deg: turns clockwise through 0)
-        if (!followLine(10.491, 11.053, 90, 270, speed) && !keepGoing()) return;
+        // path2: -> (10.49, 11.03), heading 90
+        if (!followLine(10.491, 11.0318, 90, 90, speed) && !keepGoing()) return;
 //        intake.start();
 //        waitSec(2.0);
 //        intake.stop();
-        // path3: -> (35.19, 127.80), linear 270 -> 310
-        if (!followLine(35.1918, 127.804, 270, 310, speed) && !keepGoing()) return;
-        // path4: -> (46.86, 121.15), linear 310 -> 90 (+140 deg, counterclockwise)
-        if (!followLine(46.858, 121.1472, 310, 90, speed) && !keepGoing()) return;
-        // path5: -> (46.92, 131.74), tangent (+Y, ~89.7 deg). Drives into the flower to intake.
-        if (!driveTo(46.9181, 131.74, 89.6746, speed) && !keepGoing()) return;
+        // path3: -> (35.19, 127.80), linear 90 -> 310 (shortest way: 140 deg clockwise)
+        if (!followLine(35.1918, 127.804, 90, 310, speed) && !keepGoing()) return;
+        // path4: -> (46.86, 121.15), linear 310 -> 270
+        if (!followLine(46.858, 121.1472, 310, 270, speed) && !keepGoing()) return;
+        // path5: -> (46.94, 130.42), heading 270. Drives into the flower to intake.
+        if (!followLine(46.9428, 130.4197, 270, 270, speed) && !keepGoing()) return;
 //        intake.start();
 //        waitSec(3.0);
 //        intake.stop();
-        // path6: -> (46.91, 118.20), reverseTangent: driving backward, still facing +Y (~90 deg)
-        if (!driveTo(46.9078, 118.2035, 89.9561, speed) && !keepGoing()) return;
-        // path7: -> (58.42, 119.00), linear 0 -> 270. Its start heading (0) differs from where
-        // path6 ends (90), as in the Pedro file, so the robot first swings toward 0 then to 270.
-        followLine(58.4153, 118.9954, 0, 270, speed);
+        // path6: -> (56.58, 120.20), heading 270
+        followLine(56.5847, 120.2031, 270, 270, speed);
         outtake.start("pollen");
         outtake.start("nectar");
         waitSec(1.5);
@@ -238,8 +234,10 @@ public class CustomAutoRunner extends LinearOpMode {
     // Movement API
     // ------------------------------------------------------------------------------------
 
+    /** headingDeg is the direction the outtake faces (see AutoConfig.AUTO_FRONT_OFFSET_DEG). */
     public void setStartPose(double x, double y, double headingDeg) {
-        odo.setPosition(new Pose2D(DistanceUnit.INCH, x, y, AngleUnit.DEGREES, headingDeg));
+        odo.setPosition(new Pose2D(DistanceUnit.INCH, x, y, AngleUnit.DEGREES,
+                AngleUnit.normalizeDegrees(headingDeg + AutoConfig.AUTO_FRONT_OFFSET_DEG)));
         odo.update();
     }
 
@@ -334,6 +332,8 @@ public class CustomAutoRunner extends LinearOpMode {
      */
     private boolean move(double tx, double ty, double tHeadingDeg, double maxPower,
                          double tolIn, double tolDeg, double timeoutSec, double switchRadiusIn) {
+        // Routine headings are for the outtake side; the pose heading is the physical front's.
+        tHeadingDeg = AngleUnit.normalizeDegrees(tHeadingDeg + AutoConfig.AUTO_FRONT_OFFSET_DEG);
         double tH = Math.toRadians(tHeadingDeg);
         double start = clock.seconds();
         double settledSince = -1;
@@ -454,7 +454,8 @@ public class CustomAutoRunner extends LinearOpMode {
         panels.addData("Log file", log.path());
         panels.addData("x", pose.getX(DistanceUnit.INCH));
         panels.addData("y", pose.getY(DistanceUnit.INCH));
-        panels.addData("heading", pose.getHeading(AngleUnit.DEGREES));
+        panels.addData("heading (outtake)", AngleUnit.normalizeDegrees(
+                pose.getHeading(AngleUnit.DEGREES) - AutoConfig.AUTO_FRONT_OFFSET_DEG));
         panels.update(telemetry);
     }
 }

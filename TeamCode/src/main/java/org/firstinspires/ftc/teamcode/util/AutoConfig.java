@@ -165,4 +165,9 @@ public class AutoConfig {
     public static double BLOCKED_SPEED_IN_S = 1.0;   // "stopped": slower than this...
     public static double BLOCKED_TURN_DEG_S = 5.0;   // ...and turning slower than this
     public static double BLOCKED_MIN_POWER = 0.12;   // ...while asking for at least this much power
+
+    // --- Which side is the "front" in CustomAutoRunner (AUTO only; TeleOp is unaffected) ---
+    // Every heading in the AUTO routines (start pose, targets, turns) is the direction this side
+    // faces. 180 = the outtake, on the back of the robot. 0 = the intake/drive front.
+    public static double AUTO_FRONT_OFFSET_DEG = 180;
 }
