@@ -61,10 +61,9 @@ public class CustomAutoRunner extends LinearOpMode {
     private int routine = 0;
 
     // Shooting in the team path. Toggle during INIT with X.
-    // true: Outtake.fire() volleys at the tuned speed (startAtSpeed), one gate pulse per ball.
+    // true: Outtake.fire() volleys at the tuned speed (startAtSpeed), using each flywheel's pulse pattern.
     // false: the old way, fixed power (0.8 / 0.9) and the gates held open.
     private boolean useVolleys = true;
-    private static final int BALLS_PER_VOLLEY = 4;
 
     // Which side headings refer to: AutoConfig.AUTO_FRONT_OFFSET_DEG (outtake) for the team path,
     // 0 (intake side) for the test routines 1-5, so those behave as before. Set by startPoseFor().
@@ -113,7 +112,8 @@ public class CustomAutoRunner extends LinearOpMode {
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
             panels.addData("Shooting (X)", useVolleys
-                    ? BALLS_PER_VOLLEY + "-ball volleys at tuned speed" : "fixed power, gates held open");
+                    ? "volleys at tuned speed (pollen " + outtake.ballsPerVolley("pollen") + ", nectar "
+                    + outtake.ballsPerVolley("nectar") + " balls)" : "fixed power, gates held open");
             panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f), %s facing %.0f", startX, startY, frontOffsetDeg != 0 ? "outtake" : "intake", startH));
             showPose("INIT - keep robot still");
         }
@@ -207,12 +207,12 @@ public class CustomAutoRunner extends LinearOpMode {
     }
 
     /**
-     * Fires BALLS_PER_VOLLEY balls from each chosen flywheel (Outtake.fire: spin up to the tuned
-     * speed, then one gate pulse per ball) and waits, stopped, until done or 8 s have passed.
+     * Fires a volley from each chosen flywheel (Outtake.fire: spin up to the tuned speed, then
+     * the flywheel's pulse pattern) and waits, stopped, until done or 8 s have passed.
      */
     private void volley(boolean pollen, boolean nectar) {
-        if (pollen) outtake.fire("pollen", BALLS_PER_VOLLEY);
-        if (nectar) outtake.fire("nectar", BALLS_PER_VOLLEY);
+        if (pollen) outtake.fire("pollen");
+        if (nectar) outtake.fire("nectar");
         AutoConfig.stop(motors);
         double end = clock.seconds() + 8.0;
         while (opModeIsActive() && clock.seconds() < end

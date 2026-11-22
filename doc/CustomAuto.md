@@ -172,13 +172,15 @@ In Panels, graph `target` and `velocity`. For each flywheel:
 `Outtake.atSpeed("nectar")` returns true when that flywheel is within `READY_TOLERANCE` (40
 ticks/s); you can wait on it before opening a gate.
 
-**Volleys (TeleOp `meow`):** LB fires 4 nectar balls and RB fires 4 pollen balls, one gate pulse per
-ball (`Outtake.fire(type, n)`; the OpMode must call `outtake.update()` every loop). Press again
-to cancel. During INIT, X switches the bumpers between volleys and "gate open while held".
+**Volleys (TeleOp `meow`):** LB fires a nectar volley and RB a pollen volley (`Outtake.fire(type)`;
+the OpMode must call `outtake.update()` every loop). Press again to cancel. Each volley is a pattern
+of gate pulses, each letting 1 or 2 balls through: `NECTAR_PATTERN` {1, 1, 1, 1} and
+`POLLEN_PATTERN` {1, 1, 2} in `util/Outtake.java`. Pulse lengths: nectar 0.11 s for 1 ball /
+0.17 s for 2; pollen 0.25 s for 1 ball / 0.35 s for 2 (pollen's gate is slower). The next pulse
+waits at least `MIN_GAP_SEC` 0.6 s, then fires once `atSpeed()`, or after `MAX_GAP_SEC` 1.0 s
+regardless. During INIT, X switches the bumpers between volleys and "gate open while held".
 In Custom Auto Runner, X during INIT switches the team path's shooting between volleys at the
-tuned speed and the old fixed power (0.8 / 0.9) with the gates held open. Timing, in `util/Outtake.java`: `NECTAR_PULSE_SEC` 0.11 (from logs: 110-150 ms lets
-exactly one ball through), next pulse after at least `MIN_GAP_SEC` 0.6 s once `atSpeed()`, or
-after `MAX_GAP_SEC` 1.0 s regardless. `POLLEN_PULSE_SEC` 0.25 (pollen's gate needs ~240-280 ms for one ball). Logs go to `outtake_<time>.csv`.
+tuned speed and the old fixed power (0.8 / 0.9) with the gates held open. Logs go to `outtake_<time>.csv`.
 
 ## Troubleshooting
 

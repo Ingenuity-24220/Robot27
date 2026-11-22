@@ -46,8 +46,6 @@ public class meow extends OpMode {
 
     final ElapsedTime clock = new ElapsedTime();
 
-    static final int BALLS_PER_VOLLEY = 4;
-
     // Bumpers: true = fire a volley (one gate pulse per ball); false = gate open while held.
     // Toggle during INIT with X.
     boolean useVolleys = true;
@@ -70,7 +68,8 @@ public class meow extends OpMode {
     public void init_loop() {
         if (gamepad1.xWasPressed()) useVolleys = !useVolleys;
         telemetry.addData("Bumpers (X to change)", useVolleys
-                ? "fire " + BALLS_PER_VOLLEY + "-ball volley" : "gate open while held");
+                ? "volley (nectar " + outtake.ballsPerVolley("nectar") + " balls, pollen "
+                        + outtake.ballsPerVolley("pollen") + ")" : "gate open while held");
         telemetry.update();
     }
 
@@ -111,10 +110,10 @@ public class meow extends OpMode {
         }
 
         if (useVolleys) {
-            // Bumpers fire a volley of BALLS_PER_VOLLEY balls, one gate pulse per ball (see Outtake.fire).
+            // Bumpers fire a volley: the flywheel's pulse pattern, e.g. pollen 1-1-2 (see Outtake.fire).
             // Press again during a volley to cancel it.
-            if (gamepad1.rightBumperWasPressed()) outtake.fire("pollen", BALLS_PER_VOLLEY);
-            if (gamepad1.leftBumperWasPressed()) outtake.fire("nectar", BALLS_PER_VOLLEY);
+            if (gamepad1.rightBumperWasPressed()) outtake.fire("pollen");
+            if (gamepad1.leftBumperWasPressed()) outtake.fire("nectar");
         } else {
             // Gate open while the bumper is held.
             if (gamepad1.rightBumperWasPressed()) outtake.open("pollen");

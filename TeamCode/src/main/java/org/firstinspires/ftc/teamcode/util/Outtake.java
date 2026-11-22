@@ -36,15 +36,18 @@ public class Outtake {
     public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
 
-    // --- Volleys: fire(type, n) lets n balls through one at a time (call update() every loop) ---
-    // From meow_20261121_225627: nectar gate open 110-150 ms = 1 ball, <=105 ms often 0,
-    // >=155 ms often 2. Each ball drops the flywheel ~300 ticks/s; it is back near target ~1 s later.
-    // Pulses run 0-31 ms longer than set (meow's loop is ~31 ms).
-    // Nectar: 1 ball for 110-150 ms; a 151 ms pulse let 2 through (meow_231449), so 0.11 keeps it under.
+    // --- Volleys: fire(type) runs that flywheel's pattern of gate pulses (call update() every loop) ---
+    // Each entry is how many balls one pulse lets through. Nectar 1-1-1-1; pollen 1-1-2 (team's choice).
+    public static int[] NECTAR_PATTERN = {1, 1, 1, 1};
+    public static int[] POLLEN_PATTERN = {1, 1, 2};
+    // Pulse lengths. Real pulses run 0-31 ms longer than set (meow's loop is ~31 ms).
+    // Nectar: 110-150 ms = 1 ball, a 151 ms pulse let 2 through (meow_231449); >=155 ms usually 2.
     public static double NECTAR_PULSE_SEC = 0.11;
-    // Pollen's gate is slower: 150-180 ms mostly let 0 through (meow_231152); 237-274 ms let exactly
-    // 1 through 5 of 5 times and 343 ms let 2 through (meow_231535).
+    public static double NECTAR_PULSE2_SEC = 0.17;
+    // Pollen's gate is slower: 150-180 ms mostly 0 balls (meow_231152); 237-274 ms = 1 ball 5/5;
+    // 343 ms = 2 balls (meow_231535, only one clean sample: check the 2-ball pulse in a log).
     public static double POLLEN_PULSE_SEC = 0.25;
+    public static double POLLEN_PULSE2_SEC = 0.35;
     public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
     public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long
@@ -68,8 +71,10 @@ public class Outtake {
     public boolean isNectarRunning = false;
     public boolean isPollenRunning = false;
 
-    // Volley state per flywheel: balls left, and when the gate last opened (-1 = not yet).
+    // Volley state per flywheel: pulses left in the pattern, the current pulse's length, and when
+    // the gate last opened (-1 = not yet).
     private int nectarLeft = 0, pollenLeft = 0;
+    private double nectarPulse, pollenPulse;
     private double nectarOpenedAt = -1, pollenOpenedAt = -1, nectarVolleyStart, pollenVolleyStart;
 
 
@@ -168,19 +173,32 @@ public class Outtake {
     }
 
     /**
-     * Starts a volley: n gate pulses of *_PULSE_SEC, one ball each. Spins the flywheel up first if
-     * it isn't running. Nothing happens until update() is called every loop. Calling fire() again
-     * while a volley is running cancels it and closes the gate.
+     * Starts a volley: one gate pulse per entry of the flywheel's pattern (NECTAR_PATTERN /
+     * POLLEN_PATTERN), letting that many balls through. Spins the flywheel up first if it isn't
+     * running. Nothing happens until update() is called every loop. Calling fire() again while a
+     * volley is running cancels it and closes the gate.
      */
-    public void fire(String type, int n) {
+    public void fire(String type) {
         if (isFiring(type)) {
             cancelFire(type);
             return;
         }
         if (!(isNectar(type) ? isNectarRunning : isPollenRunning)) startAtSpeed(type);
         double now = now();
+        int n = pattern(type).length;
         if (isNectar(type)) { nectarLeft = n; nectarOpenedAt = -1; nectarVolleyStart = now; }
         else { pollenLeft = n; pollenOpenedAt = -1; pollenVolleyStart = now; }
+    }
+
+    private int[] pattern(String type) {
+        return isNectar(type) ? NECTAR_PATTERN : POLLEN_PATTERN;
+    }
+
+    /** Total balls one fire() shoots, for telemetry. */
+    public int ballsPerVolley(String type) {
+        int total = 0;
+        for (int b : pattern(type)) total += b;
+        return total;
     }
 
     public boolean isFiring(String type) {
@@ -204,7 +222,7 @@ public class Outtake {
         boolean nectar = isNectar(type);
         int left = nectar ? nectarLeft : pollenLeft;
         double openedAt = nectar ? nectarOpenedAt : pollenOpenedAt;
-        double pulse = nectar ? NECTAR_PULSE_SEC : POLLEN_PULSE_SEC;
+        double pulse = nectar ? nectarPulse : pollenPulse;
         double now = now();
 
         // Close the gate once the pulse is over.
@@ -228,9 +246,14 @@ public class Outtake {
         }
         if (!ready) return;
 
+        int[] p = pattern(type);
+        int balls = p[p.length - left];
+        double next = balls >= 2
+                ? (nectar ? NECTAR_PULSE2_SEC : POLLEN_PULSE2_SEC)
+                : (nectar ? NECTAR_PULSE_SEC : POLLEN_PULSE_SEC);
         open(type);
-        if (nectar) { nectarOpenedAt = now; nectarLeft--; }
-        else { pollenOpenedAt = now; pollenLeft--; }
+        if (nectar) { nectarOpenedAt = now; nectarLeft--; nectarPulse = next; }
+        else { pollenOpenedAt = now; pollenLeft--; pollenPulse = next; }
     }
 
     private static double now() {
