@@ -46,6 +46,8 @@ public class meow extends OpMode {
 
     final ElapsedTime clock = new ElapsedTime();
 
+    static final int BALLS_PER_VOLLEY = 4;
+
 
     @Override
     public void init() {
@@ -95,22 +97,17 @@ public class meow extends OpMode {
             intake.reverse();
         }
 
+        // Bumpers fire a volley of BALLS_PER_VOLLEY balls, one gate pulse per ball (see Outtake.fire).
+        // Press again during a volley to cancel it.
         if (gamepad1.rightBumperWasPressed()) {
-            outtake.open("pollen");
-        }
-
-        if (gamepad1.rightBumperWasReleased()) {
-            outtake.close("pollen");
+            outtake.fire("pollen", BALLS_PER_VOLLEY);
         }
 
         if (gamepad1.leftBumperWasPressed()) {
-            outtake.open("nectar");
+            outtake.fire("nectar", BALLS_PER_VOLLEY);
         }
 
-        if (gamepad1.leftBumperWasReleased()) {
-            outtake.close("nectar");
-        }
-
+        outtake.update();
 
         if (gamepad1.xWasPressed()) {
             if (outtake.isNectarRunning) {

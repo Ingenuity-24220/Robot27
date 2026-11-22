@@ -36,6 +36,15 @@ public class Outtake {
     public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
 
+    // --- Volleys: fire(type, n) lets n balls through one at a time (call update() every loop) ---
+    // From meow_20261121_225627: nectar gate open 110-150 ms = 1 ball, <=105 ms often 0,
+    // >=155 ms often 2. Each ball drops the flywheel ~300 ticks/s; it is back near target ~1 s later.
+    public static double NECTAR_PULSE_SEC = 0.12;
+    public static double POLLEN_PULSE_SEC = 0.15;  // not measured yet: tune from a pollen-only log
+    public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
+    public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
+    public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long
+
     HardwareMap hardwareMap;
 
     Telemetry telemetry;
@@ -54,6 +63,10 @@ public class Outtake {
 
     public boolean isNectarRunning = false;
     public boolean isPollenRunning = false;
+
+    // Volley state per flywheel: balls left, and when the gate last opened (-1 = not yet).
+    private int nectarLeft = 0, pollenLeft = 0;
+    private double nectarOpenedAt = -1, pollenOpenedAt = -1, nectarVolleyStart, pollenVolleyStart;
 
 
     public Outtake(HardwareMap hardwareMap, Telemetry telemetry/*, TelemetryManager panelsTelemetry*/){
@@ -148,6 +161,76 @@ public class Outtake {
         boolean running = isNectar(type) ? isNectarRunning : isPollenRunning;
         double target = targetVelocity(type);
         return running && target > 0 && Math.abs(velocity(type) - target) < READY_TOLERANCE;
+    }
+
+    /**
+     * Starts a volley: n gate pulses of *_PULSE_SEC, one ball each. Spins the flywheel up first if
+     * it isn't running. Nothing happens until update() is called every loop. Calling fire() again
+     * while a volley is running cancels it and closes the gate.
+     */
+    public void fire(String type, int n) {
+        if (isFiring(type)) {
+            cancelFire(type);
+            return;
+        }
+        if (!(isNectar(type) ? isNectarRunning : isPollenRunning)) startAtSpeed(type);
+        double now = now();
+        if (isNectar(type)) { nectarLeft = n; nectarOpenedAt = -1; nectarVolleyStart = now; }
+        else { pollenLeft = n; pollenOpenedAt = -1; pollenVolleyStart = now; }
+    }
+
+    public boolean isFiring(String type) {
+        return (isNectar(type) ? nectarLeft : pollenLeft) > 0
+                || (isNectar(type) ? isNectarOpen && nectarOpenedAt >= 0 : isPollenOpen && pollenOpenedAt >= 0);
+    }
+
+    public void cancelFire(String type) {
+        if (isNectar(type)) { nectarLeft = 0; nectarOpenedAt = -1; }
+        else { pollenLeft = 0; pollenOpenedAt = -1; }
+        close(type);
+    }
+
+    /** Runs the gate pulses of any volley started with fire(). Call once per loop. */
+    public void update() {
+        updateVolley("nectar");
+        updateVolley("pollen");
+    }
+
+    private void updateVolley(String type) {
+        boolean nectar = isNectar(type);
+        int left = nectar ? nectarLeft : pollenLeft;
+        double openedAt = nectar ? nectarOpenedAt : pollenOpenedAt;
+        double pulse = nectar ? NECTAR_PULSE_SEC : POLLEN_PULSE_SEC;
+        double now = now();
+
+        // Close the gate once the pulse is over.
+        if (openedAt >= 0 && (nectar ? isNectarOpen : isPollenOpen) && now - openedAt >= pulse) {
+            close(type);
+            if (left == 0) {
+                if (nectar) nectarOpenedAt = -1; else pollenOpenedAt = -1;
+            }
+        }
+        if (left == 0) return;
+
+        boolean ready;
+        if (openedAt < 0) {
+            // First ball: wait for the flywheel to reach speed (or give up waiting after MAX_SPINUP_SEC).
+            double started = nectar ? nectarVolleyStart : pollenVolleyStart;
+            ready = atSpeed(type) || now - started >= MAX_SPINUP_SEC;
+        } else {
+            // Later balls: let the previous ball hit and the flywheel recover.
+            double since = now - openedAt;
+            ready = since >= MAX_GAP_SEC || (since >= MIN_GAP_SEC && atSpeed(type));
+        }
+        if (!ready) return;
+
+        open(type);
+        if (nectar) { nectarOpenedAt = now; nectarLeft--; }
+        else { pollenOpenedAt = now; pollenLeft--; }
+    }
+
+    private static double now() {
+        return System.nanoTime() / 1e9;
     }
 
     public double batteryVoltage() {

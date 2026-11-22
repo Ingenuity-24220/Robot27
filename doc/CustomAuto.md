@@ -170,7 +170,13 @@ In Panels, graph `target` and `velocity`. For each flywheel:
    `util/Outtake.java`, then do the other flywheel (X).
 
 `Outtake.atSpeed("nectar")` returns true when that flywheel is within `READY_TOLERANCE` (40
-ticks/s); you can wait on it before opening a gate. Logs go to `outtake_<time>.csv`.
+ticks/s); you can wait on it before opening a gate.
+
+**Volleys (TeleOp `meow`):** LB fires 4 nectar balls and RB fires 4 pollen balls, one gate pulse per
+ball (`Outtake.fire(type, n)`; the OpMode must call `outtake.update()` every loop). Press again
+to cancel. Timing, in `util/Outtake.java`: `NECTAR_PULSE_SEC` 0.12 (from logs: 110-150 ms lets
+exactly one ball through), next pulse after at least `MIN_GAP_SEC` 0.6 s once `atSpeed()`, or
+after `MAX_GAP_SEC` 1.0 s regardless. `POLLEN_PULSE_SEC` 0.15 is a guess until pollen is logged. Logs go to `outtake_<time>.csv`.
 
 ## Troubleshooting
 
