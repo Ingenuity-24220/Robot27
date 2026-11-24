@@ -55,7 +55,7 @@ public class Outtake {
     // 237-274 ms = 1 ball 5/5 in meow_231535 but only 5 of 15 in meow_20261124 (rest 0);
     // 343-380 ms = 0, 1 or 2. Set longer so fewer pulses come up empty.
     public static double POLLEN_PULSE_SEC = 0.30;
-    public static double POLLEN_PULSE2_SEC = 0.42;
+    public static double POLLEN_PULSE2_SEC = 0.50;  // 0.42 let only 1 ball through (team test, Nov 24)
     public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
     public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long
