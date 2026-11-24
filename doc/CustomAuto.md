@@ -174,8 +174,8 @@ ticks/s); you can wait on it before opening a gate.
 
 **Volleys (TeleOp `meow`):** LB fires a nectar volley and RB a pollen volley (`Outtake.fire(type)`;
 the OpMode must call `outtake.update()` every loop). Press again to cancel. Each volley is a pattern
-of gate pulses: `NECTAR_PATTERN` and `POLLEN_PATTERN` {1, 1, 0} in `util/Outtake.java` = one ball,
-one ball, then the gate held open for `HOLD_OPEN_SEC` (1.0 s) to let the last balls through. Pulse
+of gate pulses in `util/Outtake.java`: `NECTAR_PATTERN` {1, 1, 1, 1} = four single balls;
+`POLLEN_PATTERN` {1, 1, 0} = one ball, one ball, then the gate held open for `HOLD_OPEN_SEC` (1.0 s) to let the last balls through. Pulse
 lengths: nectar 0.11 s for 1 ball; pollen 0.30 s for 1 ball. The next pulse
 waits at least `MIN_GAP_SEC` 0.6 s, then fires once `atSpeed()`, or after `MAX_GAP_SEC` 1.0 s
 regardless. In `meow`, D-pad Up/Down picks the speed preset (close / medium / far: `NECTAR_PRESETS` {1768, 2100, 2380}, `POLLEN_PRESETS` {1676, 1840, 2070} in `util/Outtake.java`; medium and far start from AUTO's 0.8 / 0.9 power and need tuning at their spots). During INIT, X switches the bumpers between volleys and "gate open while held".
