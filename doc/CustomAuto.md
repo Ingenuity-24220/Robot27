@@ -176,7 +176,7 @@ ticks/s); you can wait on it before opening a gate.
 the OpMode must call `outtake.update()` every loop). Press again to cancel. Each volley is a pattern
 of gate pulses, each letting 1 or 2 balls through: `NECTAR_PATTERN` {1, 1, 1, 1} and
 `POLLEN_PATTERN` {1, 1, 2} in `util/Outtake.java`. Pulse lengths: nectar 0.11 s for 1 ball /
-0.17 s for 2; pollen 0.25 s for 1 ball / 0.35 s for 2 (pollen's gate is slower). The next pulse
+0.17 s for 2; pollen 0.30 s for 1 ball / 0.42 s for 2 (pollen's gate is slower). The next pulse
 waits at least `MIN_GAP_SEC` 0.6 s, then fires once `atSpeed()`, or after `MAX_GAP_SEC` 1.0 s
 regardless. In `meow`, D-pad Up/Down picks the speed preset (close / medium / far: `NECTAR_PRESETS` {1768, 2100, 2380}, `POLLEN_PRESETS` {1676, 1840, 2070} in `util/Outtake.java`; medium and far start from AUTO's 0.8 / 0.9 power and need tuning at their spots). During INIT, X switches the bumpers between volleys and "gate open while held".
 In Custom Auto Runner, X during INIT switches the team path's shooting between volleys at the

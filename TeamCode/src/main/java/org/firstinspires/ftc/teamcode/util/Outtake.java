@@ -51,10 +51,11 @@ public class Outtake {
     // Nectar: 110-150 ms = 1 ball, a 151 ms pulse let 2 through (meow_231449); >=155 ms usually 2.
     public static double NECTAR_PULSE_SEC = 0.11;
     public static double NECTAR_PULSE2_SEC = 0.17;
-    // Pollen's gate is slower: 150-180 ms mostly 0 balls (meow_231152); 237-274 ms = 1 ball 5/5;
-    // 343 ms = 2 balls (meow_231535, only one clean sample: check the 2-ball pulse in a log).
-    public static double POLLEN_PULSE_SEC = 0.25;
-    public static double POLLEN_PULSE2_SEC = 0.35;
+    // Pollen's gate is slower and less consistent: 150-180 ms mostly 0 balls (meow_231152);
+    // 237-274 ms = 1 ball 5/5 in meow_231535 but only 5 of 15 in meow_20261124 (rest 0);
+    // 343-380 ms = 0, 1 or 2. Set longer so fewer pulses come up empty.
+    public static double POLLEN_PULSE_SEC = 0.30;
+    public static double POLLEN_PULSE2_SEC = 0.42;
     public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
     public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long
