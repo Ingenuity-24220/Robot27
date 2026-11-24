@@ -41,6 +41,7 @@ public class CustomAutoRunner extends LinearOpMode {
     private Intake intake;
     private final ElapsedTime clock = new ElapsedTime();
     private DataLogger log;
+    private DataLogger shotLog; // auto_shots_<time>.csv: flywheel speeds and gates during volleys
     private int step = 0; // increments on every driveTo/driveThrough call
 
     // Start pose (same as meowAuto). The team path (routine 6) uses its own start; see startPoseFor().
@@ -76,6 +77,9 @@ public class CustomAutoRunner extends LinearOpMode {
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
         outtake = new Outtake(hardwareMap, telemetry);
         intake = new Intake(hardwareMap);
+        shotLog = new DataLogger("auto_shots",
+                "t", "volley", "nectar_gate_open", "pollen_gate_open",
+                "nectar_speed", "pollen_speed", "nectar_target", "pollen_target", "voltage");
         log = new DataLogger("auto",
                 "t", "step", "passThrough", "targetX", "targetY", "targetH",
                 "x", "y", "heading", "velX", "velY", "velH",
@@ -93,6 +97,7 @@ public class CustomAutoRunner extends LinearOpMode {
             outtake.close("pollen");
             outtake.close("nectar");
             log.close();
+            shotLog.close();
         }
     }
 
@@ -210,7 +215,10 @@ public class CustomAutoRunner extends LinearOpMode {
      * Fires a volley from each chosen flywheel (Outtake.fire: spin up to the tuned speed, then
      * the flywheel's pulse pattern) and waits, stopped, until done or 8 s have passed.
      */
+    private int volleyCount = 0;
+
     private void volley(boolean pollen, boolean nectar) {
+        volleyCount++;
         if (pollen) outtake.fire("pollen");
         if (nectar) outtake.fire("nectar");
         AutoConfig.stop(motors);
@@ -219,6 +227,9 @@ public class CustomAutoRunner extends LinearOpMode {
                 && (outtake.isFiring("pollen") || outtake.isFiring("nectar"))) {
             outtake.update();
             odo.update();
+            shotLog.log(clock.seconds(), volleyCount, outtake.isNectarOpen ? 1 : 0, outtake.isPollenOpen ? 1 : 0,
+                    outtake.velocity("nectar"), outtake.velocity("pollen"),
+                    outtake.targetVelocity("nectar"), outtake.targetVelocity("pollen"), outtake.batteryVoltage());
             showPose("SHOOTING");
         }
         outtake.cancelFire("pollen");
