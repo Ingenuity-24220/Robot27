@@ -36,6 +36,13 @@ public class Outtake {
     public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
 
+    // --- TeleOp speed presets (ticks/s), picked with setPreset(): close, medium, far ---
+    // Starting values: close = the tuned *_VELOCITY; medium / far = what AUTO's fixed 0.8 / 0.9
+    // power gives (speed ~ 32767 * power / kF at ~12.2 V). Tune each at the spot it's used from.
+    public static final String[] PRESET_NAMES = {"close", "medium", "far"};
+    public static double[] NECTAR_PRESETS = {1768, 2100, 2380};
+    public static double[] POLLEN_PRESETS = {1676, 1840, 2070};
+
     // --- Volleys: fire(type) runs that flywheel's pattern of gate pulses (call update() every loop) ---
     // Each entry is how many balls one pulse lets through. Nectar 1-1-1-1; pollen 1-1-2 (team's choice).
     public static int[] NECTAR_PATTERN = {1, 1, 1, 1};
@@ -70,6 +77,9 @@ public class Outtake {
 
     public boolean isNectarRunning = false;
     public boolean isPollenRunning = false;
+
+    // -1 = no preset: use NECTAR_VELOCITY / POLLEN_VELOCITY (the Outtake Tuner and AUTO).
+    private int preset = -1;
 
     // Volley state per flywheel: pulses left in the pattern, the current pulse's length, and when
     // the gate last opened (-1 = not yet).
@@ -157,7 +167,19 @@ public class Outtake {
     }
 
     public double targetVelocity(String type) {
+        if (preset >= 0) return isNectar(type) ? NECTAR_PRESETS[preset] : POLLEN_PRESETS[preset];
         return isNectar(type) ? NECTAR_VELOCITY : POLLEN_VELOCITY;
+    }
+
+    /** Picks a speed preset (0 close, 1 medium, 2 far); running flywheels change speed right away. */
+    public void setPreset(int index) {
+        preset = Math.max(0, Math.min(PRESET_NAMES.length - 1, index));
+        if (isNectarRunning) startAtSpeed("nectar");
+        if (isPollenRunning) startAtSpeed("pollen");
+    }
+
+    public int preset() {
+        return preset;
     }
 
     /** Measured flywheel speed in ticks/s (needs the motor's encoder cable plugged in). */

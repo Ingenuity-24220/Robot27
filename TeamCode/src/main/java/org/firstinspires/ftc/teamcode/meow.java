@@ -59,6 +59,7 @@ public class meow extends OpMode {
         localizer = new Localization(hardwareMap, telemetry, panelsTelemetry);
         localizer.recalibrateOdometry(true);
         outtake = new Outtake(hardwareMap, telemetry);
+        outtake.setPreset(0); // close
         log = new DataLogger("meow",
                 "t", "nectar_gate_open", "pollen_gate_open", "intake_spinning",
                 "nectar_speed", "pollen_speed", "axial", "lateral", "yaw");
@@ -95,6 +96,9 @@ public class meow extends OpMode {
         telemetry.addData("Nectar gate open", outtake.isNectarOpen);
         telemetry.addData("Pollen gate open", outtake.isPollenOpen);
         telemetry.addData("Bumpers", useVolleys ? "volley" : "hold to open");
+        telemetry.addData("Speed preset (D-pad Up/Down)", Outtake.PRESET_NAMES[outtake.preset()]
+                + String.format(java.util.Locale.US, "  nectar %.0f / pollen %.0f",
+                outtake.targetVelocity("nectar"), outtake.targetVelocity("pollen")));
 
 
         if (gamepad1.aWasPressed()) {
@@ -123,6 +127,10 @@ public class meow extends OpMode {
         }
 
         outtake.update();
+
+        // Shooting speed preset: D-pad Up = farther, D-pad Down = closer (close / medium / far).
+        if (gamepad1.dpadUpWasPressed()) outtake.setPreset(outtake.preset() + 1);
+        if (gamepad1.dpadDownWasPressed()) outtake.setPreset(outtake.preset() - 1);
 
         if (gamepad1.xWasPressed()) {
             if (outtake.isNectarRunning) {
