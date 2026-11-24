@@ -46,7 +46,9 @@ public class Outtake {
     // --- Volleys: fire(type) runs that flywheel's pattern of gate pulses (call update() every loop) ---
     // Each entry is how many balls one pulse lets through. Nectar 1-1-1-1; pollen 1-1-2 (team's choice).
     public static int[] NECTAR_PATTERN = {1, 1, 1, 1};
-    public static int[] POLLEN_PATTERN = {1, 1, 2};
+    // Pollen was 1-1-2, but the 2-ball pulse let only 1 ball through 7 of 9 times even at 0.50 s
+    // (meow_20261124_161122 / 161927), leaving a ball behind. Singles are accurate, so 1-1-1-1.
+    public static int[] POLLEN_PATTERN = {1, 1, 1, 1};
     // Pulse lengths. Real pulses run 0-31 ms longer than set (meow's loop is ~31 ms).
     // Nectar: 110-150 ms = 1 ball, a 151 ms pulse let 2 through (meow_231449); >=155 ms usually 2.
     public static double NECTAR_PULSE_SEC = 0.11;
