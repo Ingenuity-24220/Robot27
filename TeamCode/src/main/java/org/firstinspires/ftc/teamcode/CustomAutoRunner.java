@@ -112,8 +112,8 @@ public class CustomAutoRunner extends LinearOpMode {
             panels.addData("Speed (D-pad Up/Down)", String.format(Locale.US, "%.1f", speed));
             panels.addData("Routine (D-pad Left/Right)", (routine + 1) + ". " + ROUTINES[routine]);
             panels.addData("Shooting (X)", useVolleys
-                    ? "volleys at tuned speed (pollen " + outtake.ballsPerVolley("pollen") + ", nectar "
-                    + outtake.ballsPerVolley("nectar") + " balls)" : "fixed power, gates held open");
+                    ? "volleys at tuned speed (pollen " + outtake.patternText("pollen") + ", nectar "
+                    + outtake.patternText("nectar") + ")" : "fixed power, gates held open");
             panels.addData("Place robot at", String.format(Locale.US, "(%.1f, %.1f), %s facing %.0f", startX, startY, frontOffsetDeg != 0 ? "outtake" : "intake", startH));
             showPose("INIT - keep robot still");
         }

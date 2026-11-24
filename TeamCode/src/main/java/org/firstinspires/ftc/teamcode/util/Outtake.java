@@ -45,10 +45,12 @@ public class Outtake {
 
     // --- Volleys: fire(type) runs that flywheel's pattern of gate pulses (call update() every loop) ---
     // Each entry is how many balls one pulse lets through. Nectar 1-1-1-1; pollen 1-1-2 (team's choice).
-    public static int[] NECTAR_PATTERN = {1, 1, 1, 1};
+    // 0 = hold the gate open for HOLD_OPEN_SEC and let whatever is left through (the last 2 balls).
+    public static int[] NECTAR_PATTERN = {1, 1, 0};
     // Pollen was 1-1-2, but the 2-ball pulse let only 1 ball through 7 of 9 times even at 0.50 s
     // (meow_20261124_161122 / 161927), leaving a ball behind. Singles are accurate, so 1-1-1-1.
-    public static int[] POLLEN_PATTERN = {1, 1, 1, 1};
+    public static int[] POLLEN_PATTERN = {1, 1, 0};
+    public static double HOLD_OPEN_SEC = 1.0;  // pollen's 2nd ball arrived up to ~0.6 s after the 1st
     // Pulse lengths. Real pulses run 0-31 ms longer than set (meow's loop is ~31 ms).
     // Nectar: 110-150 ms = 1 ball, a 151 ms pulse let 2 through (meow_231449); >=155 ms usually 2.
     public static double NECTAR_PULSE_SEC = 0.11;
@@ -219,11 +221,14 @@ public class Outtake {
         return isNectar(type) ? NECTAR_PATTERN : POLLEN_PATTERN;
     }
 
-    /** Total balls one fire() shoots, for telemetry. */
-    public int ballsPerVolley(String type) {
-        int total = 0;
-        for (int b : pattern(type)) total += b;
-        return total;
+    /** The flywheel's volley pattern for telemetry, e.g. "1-1-rest". */
+    public String patternText(String type) {
+        StringBuilder sb = new StringBuilder();
+        for (int b : pattern(type)) {
+            if (sb.length() > 0) sb.append('-');
+            sb.append(b == 0 ? "rest" : String.valueOf(b));
+        }
+        return sb.toString();
     }
 
     public boolean isFiring(String type) {
@@ -273,7 +278,7 @@ public class Outtake {
 
         int[] p = pattern(type);
         int balls = p[p.length - left];
-        double next = balls >= 2
+        double next = balls == 0 ? HOLD_OPEN_SEC : balls >= 2
                 ? (nectar ? NECTAR_PULSE2_SEC : POLLEN_PULSE2_SEC)
                 : (nectar ? NECTAR_PULSE_SEC : POLLEN_PULSE_SEC);
         open(type);

@@ -69,8 +69,8 @@ public class meow extends OpMode {
     public void init_loop() {
         if (gamepad1.xWasPressed()) useVolleys = !useVolleys;
         telemetry.addData("Bumpers (X to change)", useVolleys
-                ? "volley (nectar " + outtake.ballsPerVolley("nectar") + " balls, pollen "
-                        + outtake.ballsPerVolley("pollen") + ")" : "gate open while held");
+                ? "volley (nectar " + outtake.patternText("nectar") + ", pollen "
+                        + outtake.patternText("pollen") + ")" : "gate open while held");
         telemetry.update();
     }
 
