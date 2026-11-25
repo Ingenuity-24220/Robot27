@@ -63,7 +63,9 @@ public class Outtake {
     public static double POLLEN_PULSE2_SEC = 0.50;  // 0.42 let only 1 ball through (team test, Nov 24)
     public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
-    public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long
+    public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long...
+    public static double WARM_WAIT_SEC = 0.3;      // ...or only this long if the flywheel was already spun up
+    public static double GAIN_REFRESH_SEC = 0.5;   // re-send voltage-compensated gains this often (update())
 
     HardwareMap hardwareMap;
 
@@ -92,6 +94,10 @@ public class Outtake {
     private int nectarLeft = 0, pollenLeft = 0;
     private double nectarPulse, pollenPulse;
     private double nectarOpenedAt = -1, pollenOpenedAt = -1, nectarVolleyStart, pollenVolleyStart;
+    // Max wait for the first ball of the current volley (MAX_SPINUP_SEC cold, WARM_WAIT_SEC warm).
+    private double nectarFirstWait, pollenFirstWait;
+    // When each flywheel last started in velocity mode (-1 = not in velocity mode), and the last gain refresh.
+    private double nectarSpeedSince = -1, pollenSpeedSince = -1, lastGainRefresh = 0;
 
 
     public Outtake(HardwareMap hardwareMap, Telemetry telemetry/*, TelemetryManager panelsTelemetry*/){
@@ -142,16 +148,16 @@ public class Outtake {
         applyGains(type);
         m.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         m.setVelocity(velocity);
-        if (isNectar(type)) this.isNectarRunning = true;
-        else this.isPollenRunning = true;
+        if (isNectar(type)) { this.isNectarRunning = true; nectarSpeedSince = now(); }
+        else { this.isPollenRunning = true; pollenSpeedSince = now(); }
     }
 
     public void stop(String type) {
         DcMotorEx m = motor(type);
         m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         m.setPower(0);
-        if (isNectar(type)) this.isNectarRunning = false;
-        else this.isPollenRunning = false;
+        if (isNectar(type)) { this.isNectarRunning = false; nectarSpeedSince = -1; }
+        else { this.isPollenRunning = false; pollenSpeedSince = -1; }
     }
 
     /** Sends the current kP and voltage-compensated kF to the hub. */
@@ -170,6 +176,7 @@ public class Outtake {
         DcMotorEx m = motor(type);
         m.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         m.setPower(power);
+        if (isNectar(type)) nectarSpeedSince = -1; else pollenSpeedSince = -1;
     }
 
     public double targetVelocity(String type) {
@@ -211,11 +218,16 @@ public class Outtake {
             cancelFire(type);
             return;
         }
-        if (!(isNectar(type) ? isNectarRunning : isPollenRunning)) startAtSpeed(type);
         double now = now();
+        // Warm: already holding speed for at least MAX_SPINUP_SEC, so it's at (or within a
+        // step or two of) target. Don't make the driver wait up to 2.5 s for atSpeed() then.
+        double since = isNectar(type) ? nectarSpeedSince : pollenSpeedSince;
+        boolean warm = since >= 0 && now - since >= MAX_SPINUP_SEC;
+        if (!(isNectar(type) ? isNectarRunning : isPollenRunning)) startAtSpeed(type);
+        double firstWait = warm ? WARM_WAIT_SEC : MAX_SPINUP_SEC;
         int n = pattern(type).length;
-        if (isNectar(type)) { nectarLeft = n; nectarOpenedAt = -1; nectarVolleyStart = now; }
-        else { pollenLeft = n; pollenOpenedAt = -1; pollenVolleyStart = now; }
+        if (isNectar(type)) { nectarLeft = n; nectarOpenedAt = -1; nectarVolleyStart = now; nectarFirstWait = firstWait; }
+        else { pollenLeft = n; pollenOpenedAt = -1; pollenVolleyStart = now; pollenFirstWait = firstWait; }
     }
 
     private int[] pattern(String type) {
@@ -245,6 +257,13 @@ public class Outtake {
 
     /** Runs the gate pulses of any volley started with fire(). Call once per loop. */
     public void update() {
+        // Battery sags during a match; kF was only compensated at start. Refresh it, like the tuner does.
+        double now = now();
+        if (now - lastGainRefresh >= GAIN_REFRESH_SEC) {
+            lastGainRefresh = now;
+            if (isNectarRunning && nectarSpeedSince >= 0) applyGains("nectar");
+            if (isPollenRunning && pollenSpeedSince >= 0) applyGains("pollen");
+        }
         updateVolley("nectar");
         updateVolley("pollen");
     }
@@ -267,9 +286,10 @@ public class Outtake {
 
         boolean ready;
         if (openedAt < 0) {
-            // First ball: wait for the flywheel to reach speed (or give up waiting after MAX_SPINUP_SEC).
+            // First ball: wait for the flywheel to reach speed, at most MAX_SPINUP_SEC from cold
+            // or WARM_WAIT_SEC if it was already spun up (see fire()).
             double started = nectar ? nectarVolleyStart : pollenVolleyStart;
-            ready = atSpeed(type) || now - started >= MAX_SPINUP_SEC;
+            ready = atSpeed(type) || now - started >= (nectar ? nectarFirstWait : pollenFirstWait);
         } else {
             // Later balls: let the previous ball hit and the flywheel recover.
             double since = now - openedAt;
