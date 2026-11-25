@@ -262,7 +262,9 @@ public class Outtake {
         if (now - lastGainRefresh >= GAIN_REFRESH_SEC) {
             lastGainRefresh = now;
             if (isNectarRunning && nectarSpeedSince >= 0) applyGains("nectar");
-            if (isPollenRunning && pollenSpeedSince >= 0) applyGains("pollen");
+            // Not pollen: refreshing read the voltage while the motors were drawing current, which
+            // raised kF and ran pollen ~20-44 ticks/s fast (meow logs, Nov 25). Its kF is compensated
+            // once in startAtSpeed(), which held target before the refresh was added.
         }
         updateVolley("nectar");
         updateVolley("pollen");
