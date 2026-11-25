@@ -11,66 +11,72 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.Locale;
 
 /**
- * Bar Servo Test: finds which way servoBarL and servoBarR must move to push the bar forward.
- * The two servos are mirrored, so forward is one servo's position going up and the other's
- * going down. Test each servo alone first (the other is unpowered), so they never fight.
+ * Bar Servo Test: finds which way servoBarL and servoBarR must move to push their shared bar
+ * forward. Both servos hold the same bar, so they always move together, by the same small step:
+ * by default in opposite directions (L up, R down), since they are mounted mirrored. Moving one
+ * alone would twist the bar against the other.
  *
- * Nothing moves until you press D-pad Up/Down after START. The first nudge sends the servo to
- * HOME +/- one step, so set HOME (D-pad Up/Down during INIT) to where the bar rests now.
+ * Nothing moves until the first D-pad Up/Down after START. That first nudge sends each servo to
+ * its HOME +/- one step, so set HOME_L and HOME_R in INIT to where the bar rests now.
  * Every move is clamped to HOME +/- MAX_OFFSET.
  *
- *   INIT  D-pad Up/Down     HOME +/- 0.01 (nothing moves)
- *   X                       select servoBarL -> servoBarR -> both (both only once each is known)
- *   D-pad Up/Down           nudge the selected servo + / -  (both: forward / backward)
+ *   INIT  D-pad Up/Down     HOME_L +/- 0.01   (nothing moves)
+ *   INIT  RB/LB             HOME_R +/- 0.01
+ *   D-pad Up/Down           nudge the bar one step (+ / -)
  *   D-pad Right/Left        bigger / smaller step
- *   Y                       "the bar went FORWARD on that nudge"  (records the servo's direction)
+ *   Y                       "the bar went FORWARD on that nudge"
  *   A                       "the bar went BACKWARD on that nudge"
- *   B                       send the selected servo(s) back to HOME
+ *   B                       back to HOME
+ *   X (at HOME only)        switch pairing: opposite (L+, R-) <-> same (L+, R+). Use it only if
+ *                           opposite makes the bar bind or twist instead of moving.
  *
- * The result line on the Driver Station says which direction is forward for each servo.
- * Works with standard servos; continuous rotation servos get short low-power pulses instead.
+ * The RESULT line on the Driver Station says which direction is forward for each servo.
+ * Continuous rotation servos get short low-power pulses instead of positions.
  */
 @TeleOp(name = "Bar Servo Test")
 public class BarServoTest extends OpMode {
 
-    static double HOME = 0.5;                       // position the test starts from
+    static double HOME_L = 0.5, HOME_R = 0.5;       // positions the test starts from
     static final double MAX_OFFSET = 0.10;          // never further than this from HOME
     static final double[] STEPS = {0.005, 0.01, 0.02};
     static final double CR_POWER = 0.15;            // continuous rotation servos only
     static final double CR_PULSE_SEC = 0.15;
 
-    static final String[] NAMES = {"servoBarL", "servoBarR"};
-
-    final ServoImplEx[] servo = new ServoImplEx[2];
-    final CRServo[] cr = new CRServo[2];
-    final double[] offset = {0, 0};   // commanded position minus HOME (CR: step-equivalents pulsed)
-    final int[] lastDir = {0, 0};     // sign of the last nudge
-    final int[] forward = {0, 0};     // +1: increasing position = forward, -1: decreasing, 0: unknown
-    final double[] pulseEnd = {-1, -1};
+    ServoImplEx servoL, servoR;
+    CRServo crL, crR;
 
     TelemetryManager panels;
     final ElapsedTime clock = new ElapsedTime();
-    int selected = 0;                 // 0 = L, 1 = R, 2 = both
     int stepIdx = 0;
-    String message = "Select a servo with X, then nudge with D-pad Up/Down";
+    int pairing = -1;          // R moves pairing * L's direction: -1 opposite, +1 same
+    double offset = 0;         // L's offset from HOME_L; R's is pairing * offset
+    int lastDir = 0;           // sign of the last nudge (in L's direction)
+    int forward = 0;           // L direction that moves the bar forward (0 = unknown)
+    int forwardPairing = 0;    // pairing that was active when forward was recorded
+    double pulseEnd = -1;
+    String message = "Nudge with D-pad Up/Down, then press Y (forward) or A (backward)";
 
     @Override
     public void init() {
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
-        for (int i = 0; i < 2; i++) {
-            servo[i] = hardwareMap.tryGet(ServoImplEx.class, NAMES[i]);
-            if (servo[i] == null) cr[i] = hardwareMap.tryGet(CRServo.class, NAMES[i]);
-            release(i);
-        }
+        servoL = hardwareMap.tryGet(ServoImplEx.class, "servoBarL");
+        servoR = hardwareMap.tryGet(ServoImplEx.class, "servoBarR");
+        if (servoL == null) crL = hardwareMap.tryGet(CRServo.class, "servoBarL");
+        if (servoR == null) crR = hardwareMap.tryGet(CRServo.class, "servoBarR");
+        release();
     }
 
     @Override
     public void init_loop() {
-        if (gamepad1.dpadUpWasPressed()) HOME = Math.min(1.0 - MAX_OFFSET, HOME + 0.01);
-        if (gamepad1.dpadDownWasPressed()) HOME = Math.max(MAX_OFFSET, HOME - 0.01);
-        panels.addData("HOME (D-pad Up/Down)", fmt(HOME) + "  set this to where the bar rests now");
-        panels.addData("Range", fmt(HOME - MAX_OFFSET) + " to " + fmt(HOME + MAX_OFFSET));
-        for (int i = 0; i < 2; i++) panels.addData(NAMES[i], kind(i));
+        if (gamepad1.dpadUpWasPressed()) HOME_L = clampHome(HOME_L + 0.01);
+        if (gamepad1.dpadDownWasPressed()) HOME_L = clampHome(HOME_L - 0.01);
+        if (gamepad1.rightBumperWasPressed()) HOME_R = clampHome(HOME_R + 0.01);
+        if (gamepad1.leftBumperWasPressed()) HOME_R = clampHome(HOME_R - 0.01);
+        panels.addData("HOME_L (D-pad Up/Down)", fmt(HOME_L));
+        panels.addData("HOME_R (RB/LB)", fmt(HOME_R));
+        panels.addData("Note", "set both to where the bar rests now; nothing moves until START + D-pad");
+        panels.addData("servoBarL", kind(servoL, crL));
+        panels.addData("servoBarR", kind(servoR, crR));
         panels.update(telemetry);
     }
 
@@ -84,126 +90,115 @@ public class BarServoTest extends OpMode {
         double now = clock.seconds();
         double step = STEPS[stepIdx];
 
-        if (gamepad1.xWasPressed()) {
-            int next = (selected + 1) % 3;
-            if (next == 2 && (forward[0] == 0 || forward[1] == 0)) next = 0;
-            selected = next;
-            // Only the selected servo is powered, so a single-servo test never fights the other one.
-            if (selected != 2) release(1 - selected);
-            message = "Selected " + selectedName();
-        }
+        // *WasPressed() is true only on its first call per press, so read each button once.
+        boolean up = gamepad1.dpadUpWasPressed(), down = gamepad1.dpadDownWasPressed();
+        boolean y = gamepad1.yWasPressed(), a = gamepad1.aWasPressed();
+        boolean b = gamepad1.bWasPressed(), x = gamepad1.xWasPressed();
+
         if (gamepad1.dpadRightWasPressed()) stepIdx = Math.min(STEPS.length - 1, stepIdx + 1);
         if (gamepad1.dpadLeftWasPressed()) stepIdx = Math.max(0, stepIdx - 1);
 
-        int dir = gamepad1.dpadUpWasPressed() ? 1 : gamepad1.dpadDownWasPressed() ? -1 : 0;
+        int dir = up ? 1 : down ? -1 : 0;
         if (dir != 0) {
-            if (selected == 2) {
-                // dir = +1 means forward: each servo moves its own forward way.
-                double l = offset[0] + dir * forward[0] * step, r = offset[1] + dir * forward[1] * step;
-                if (Math.abs(l) > MAX_OFFSET + 1e-9 || Math.abs(r) > MAX_OFFSET + 1e-9) {
-                    message = "Limit reached (HOME +/- " + fmt(MAX_OFFSET) + ")";
-                } else {
-                    move(0, l, forward[0] * dir, now);
-                    move(1, r, forward[1] * dir, now);
-                    message = dir > 0 ? "Both: forward one step" : "Both: backward one step";
-                }
+            double o = offset + dir * step;
+            if (Math.abs(o) > MAX_OFFSET + 1e-9) {
+                message = "Limit reached (HOME +/- " + fmt(MAX_OFFSET) + ")";
             } else {
-                double o = offset[selected] + dir * step;
-                if (Math.abs(o) > MAX_OFFSET + 1e-9) {
-                    message = "Limit reached (HOME +/- " + fmt(MAX_OFFSET) + ")";
-                } else {
-                    move(selected, o, dir, now);
-                    lastDir[selected] = dir;
-                    message = NAMES[selected] + (dir > 0 ? " +" : " -") + fmt(step)
-                            + ". Which way did the bar go? Y = forward, A = backward";
-                }
+                moveBoth(o, dir, now);
+                lastDir = dir;
+                message = "Nudged L " + (dir > 0 ? "+" : "-") + ", R " + (dir * pairing > 0 ? "+" : "-")
+                        + fmt(step) + ". Which way did the bar go? Y = forward, A = backward";
             }
         }
 
-        // *WasPressed() is true only on its first call per press, so read each button once.
-        boolean y = gamepad1.yWasPressed(), a = gamepad1.aWasPressed();
-        if (selected != 2 && (y || a)) {
-            boolean wentForward = y;
-            if (lastDir[selected] == 0) {
-                message = "Nudge " + NAMES[selected] + " first";
+        if (y || a) {
+            if (lastDir == 0) {
+                message = "Nudge the bar first";
             } else {
-                forward[selected] = wentForward ? lastDir[selected] : -lastDir[selected];
-                message = "Recorded: " + NAMES[selected] + " forward = " + sign(forward[selected])
-                        + ". Press B to send it home.";
+                forward = y ? lastDir : -lastDir;
+                forwardPairing = pairing;
+                message = "Recorded. Press B to send the bar home.";
             }
         }
 
-        if (gamepad1.bWasPressed()) {
-            message = selectedName() + " back to HOME";
-            for (int i = 0; i < 2; i++) {
-                if (selected != i && selected != 2) continue;
-                if (servo[i] != null) move(i, 0, 0, now);
-                else message = "Continuous servos have no home; nudge them back instead";
+        if (b) {
+            if (servoL != null || servoR != null) {
+                moveBoth(0, 0, now);
+                message = "Back to HOME";
+            } else {
+                message = "Continuous servos have no home; nudge them back instead";
+            }
+        }
+
+        if (x) {
+            if (Math.abs(offset) > 1e-9) {
+                message = "Press B (back to HOME) before switching pairing";
+            } else {
+                pairing = -pairing;
+                lastDir = 0;
+                message = "Pairing: " + pairingText(pairing);
             }
         }
 
         // End continuous rotation pulses.
-        for (int i = 0; i < 2; i++) {
-            if (cr[i] != null && pulseEnd[i] >= 0 && now >= pulseEnd[i]) {
-                cr[i].setPower(0);
-                pulseEnd[i] = -1;
-            }
+        if (pulseEnd >= 0 && now >= pulseEnd) {
+            if (crL != null) crL.setPower(0);
+            if (crR != null) crR.setPower(0);
+            pulseEnd = -1;
         }
 
         // --- Telemetry ---
-        panels.addData("Selected (X)", selectedName());
+        panels.addData("Pairing (X at HOME)", pairingText(pairing));
         panels.addData("Step (D-pad L/R)", fmt(step));
         panels.addData("Message", message);
-        for (int i = 0; i < 2; i++) {
-            String pos = servo[i] != null ? "position " + fmt(HOME + offset[i]) : "pulses " + fmt(offset[i] / step);
-            panels.addData(NAMES[i], kind(i) + ", " + pos + ", forward = "
-                    + (forward[i] == 0 ? "unknown" : sign(forward[i])));
-        }
+        panels.addData("servoBarL", kind(servoL, crL) + (servoL != null ? ", position " + fmt(HOME_L + offset) : ""));
+        panels.addData("servoBarR", kind(servoR, crR) + (servoR != null ? ", position " + fmt(HOME_R + pairing * offset) : ""));
         panels.addData("RESULT", result());
         panels.update(telemetry);
     }
 
     @Override
     public void stop() {
-        release(0);
-        release(1);
+        release();
     }
 
-    /** Sends servo i to HOME + newOffset (CR: one pulse in pulseDir). */
-    private void move(int i, double newOffset, int pulseDir, double now) {
-        if (servo[i] != null) {
-            servo[i].setPosition(HOME + newOffset);
-        } else if (cr[i] != null) {
-            if (pulseDir == 0) return;
-            cr[i].setPower(pulseDir * CR_POWER);
-            pulseEnd[i] = now + CR_PULSE_SEC;
-        } else {
-            return;
+    /** Moves both servos together: L to HOME_L + newOffset, R to HOME_R + pairing * newOffset. */
+    private void moveBoth(double newOffset, int pulseDir, double now) {
+        if (servoL != null) servoL.setPosition(HOME_L + newOffset);
+        if (servoR != null) servoR.setPosition(HOME_R + pairing * newOffset);
+        if (pulseDir != 0 && (crL != null || crR != null)) {
+            if (crL != null) crL.setPower(pulseDir * CR_POWER);
+            if (crR != null) crR.setPower(pairing * pulseDir * CR_POWER);
+            pulseEnd = now + CR_PULSE_SEC;
         }
-        offset[i] = newOffset;
+        offset = newOffset;
     }
 
-    /** Unpowers servo i so it holds nothing and can't fight the other one. */
-    private void release(int i) {
-        if (servo[i] != null) servo[i].setPwmDisable();
-        if (cr[i] != null) cr[i].setPower(0);
-        pulseEnd[i] = -1;
+    /** Unpowers both servos. */
+    private void release() {
+        if (servoL != null) servoL.setPwmDisable();
+        if (servoR != null) servoR.setPwmDisable();
+        if (crL != null) crL.setPower(0);
+        if (crR != null) crR.setPower(0);
+        pulseEnd = -1;
     }
 
     private String result() {
-        if (forward[0] == 0 || forward[1] == 0) return "not done: record forward for both servos (Y/A)";
-        String r = String.format(Locale.US, "forward = servoBarL %s, servoBarR %s",
-                sign(forward[0]), sign(forward[1]));
-        if (forward[0] == forward[1]) r += "  (WARNING: same sign; mirrored servos should be opposite)";
-        return r;
+        if (forward == 0) return "not done: nudge, then press Y or A";
+        return String.format(Locale.US, "forward = servoBarL %s, servoBarR %s  (HOME_L %s, HOME_R %s)",
+                sign(forward), sign(forward * forwardPairing), fmt(HOME_L), fmt(HOME_R));
     }
 
-    private String selectedName() {
-        return selected == 2 ? "both" : NAMES[selected];
+    private static String pairingText(int p) {
+        return p < 0 ? "opposite (L+ with R-)" : "same (L+ with R+)";
     }
 
-    private String kind(int i) {
-        return servo[i] != null ? "servo" : cr[i] != null ? "continuous servo" : "NOT FOUND in config";
+    private static double clampHome(double v) {
+        return Math.max(MAX_OFFSET, Math.min(1.0 - MAX_OFFSET, v));
+    }
+
+    private static String kind(ServoImplEx s, CRServo c) {
+        return s != null ? "servo" : c != null ? "continuous servo" : "NOT FOUND in config";
     }
 
     private static String sign(int s) {
