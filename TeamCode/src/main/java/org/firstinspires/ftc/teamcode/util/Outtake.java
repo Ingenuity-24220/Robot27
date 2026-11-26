@@ -31,7 +31,7 @@ public class Outtake {
     public static double NECTAR_KF = 12.55; // 12.55
     public static double NECTAR_POWER = 0.675;     // power the tuner measures kF at (TeleOp nectar power)
 
-    public static double POLLEN_VELOCITY = 1676.00;
+    public static double POLLEN_VELOCITY = 1640.00; // was 1676; balls landed long (Nov 25)
     public static double POLLEN_KP = 3.54;
     public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
@@ -41,7 +41,7 @@ public class Outtake {
     // power gives (speed ~ 32767 * power / kF at ~12.2 V). Tune each at the spot it's used from.
     public static final String[] PRESET_NAMES = {"close", "medium", "far"};
     public static double[] NECTAR_PRESETS = {1768, 2100, 2380};
-    public static double[] POLLEN_PRESETS = {1676, 1840, 2070};
+    public static double[] POLLEN_PRESETS = {1640, 1840, 2070};
 
     // --- Volleys: fire(type) runs that flywheel's pattern of gate pulses (call update() every loop) ---
     // Each entry is how many balls one pulse lets through. Nectar 1-1-1-1; pollen 1-1-2 (team's choice).
