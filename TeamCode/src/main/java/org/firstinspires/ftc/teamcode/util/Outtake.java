@@ -25,6 +25,10 @@ public class Outtake {
     // --- Tuned values: copy them in from the Outtake Tuner ---
     public static double NOMINAL_VOLTAGE = 12.0;  // battery voltage kF refers to
     public static double READY_TOLERANCE = 40;    // ticks/s: "at speed" window
+    // kF is compensated with the highest battery reading of the last REST_VOLTAGE_SEC, not one
+    // reading: a reading taken while the drivetrain or the other flywheel pulls current sags, set kF
+    // too high, and ran pollen +100..+620 ticks/s fast for the whole spin-up (meow_20261127_1*).
+    public static double REST_VOLTAGE_SEC = 10;
 
     public static double NECTAR_VELOCITY = 1768.0;     // ticks/s; 0 = use NECTAR_POWER instead
     public static double NECTAR_KP = 3.83; // 3.83
@@ -112,6 +116,8 @@ public class Outtake {
     private double nectarFirstWait, pollenFirstWait;
     // When each flywheel last started in velocity mode (-1 = not in velocity mode).
     private double nectarSpeedSince = -1, pollenSpeedSince = -1;
+    // Resting-voltage tracker: max reading in the current and the previous half-window.
+    private double voltMaxNow = 0, voltMaxPrev = 0, voltBucketStart = -1;
     // When the current unjam started (-1 = not unjamming).
     private double nectarUnjamStart = -1, pollenUnjamStart = -1;
 
@@ -185,7 +191,30 @@ public class Outtake {
     }
 
     public double compensatedF(double kF) {
-        return kF * NOMINAL_VOLTAGE / Math.max(batteryVoltage(), 1.0);
+        return kF * NOMINAL_VOLTAGE / Math.max(restingVoltage(), 1.0);
+    }
+
+    /**
+     * Highest battery reading of roughly the last REST_VOLTAGE_SEC: the voltage without load, since
+     * current draw only pulls the reading down. update() samples it every loop; if update() isn't
+     * being called (Outtake Tuner), this is about the current reading.
+     */
+    public double restingVoltage() {
+        double v = batteryVoltage();
+        double now = now();
+        double half = REST_VOLTAGE_SEC / 2;
+        if (voltBucketStart < 0 || now - voltBucketStart >= 2 * half) {
+            voltMaxPrev = 0;            // no recent samples: start over
+            voltMaxNow = v;
+            voltBucketStart = now;
+        } else if (now - voltBucketStart >= half) {
+            voltMaxPrev = voltMaxNow;
+            voltMaxNow = v;
+            voltBucketStart = now;
+        } else {
+            voltMaxNow = Math.max(voltMaxNow, v);
+        }
+        return Math.max(voltMaxNow, voltMaxPrev);
     }
 
     /** Runs a flywheel at a fixed power, with no speed control (used by the tuner's measure step). */
@@ -314,6 +343,7 @@ public class Outtake {
 
     /** Runs the gate pulses of any volley started with fire(), and any unjam. Call once per loop. */
     public void update() {
+        restingVoltage(); // sample the battery every loop for startAtSpeed()'s compensation
         // kF is voltage-compensated once in startAtSpeed(); kI corrects drift after that. Gains are
         // not re-sent every loop: a voltage read under drive load set nectar's kF high and ran it
         // up to +270 ticks/s fast (meow_20261127_103518).

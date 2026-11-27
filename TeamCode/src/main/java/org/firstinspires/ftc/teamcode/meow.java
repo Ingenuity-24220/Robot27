@@ -62,7 +62,8 @@ public class meow extends OpMode {
         outtake.setPreset(0); // close
         log = new DataLogger("meow",
                 "t", "nectar_gate_open", "pollen_gate_open", "intake_spinning",
-                "nectar_speed", "pollen_speed", "axial", "lateral", "yaw");
+                "nectar_speed", "pollen_speed", "axial", "lateral", "yaw",
+                "voltage", "rest_voltage", "preset");
     }
 
     @Override
@@ -159,7 +160,8 @@ public class meow extends OpMode {
 
         telemetry.update();
 
-        log.log(now, outtake.isNectarOpen ? 1 : 0, outtake.isPollenOpen ? 1 : 0, intake.isRunning ? 1 : 0, outtake.velocity("nectar"), outtake.velocity("pollen"), axial, lateral, yaw);
+        log.log(now, outtake.isNectarOpen ? 1 : 0, outtake.isPollenOpen ? 1 : 0, intake.isRunning ? 1 : 0, outtake.velocity("nectar"), outtake.velocity("pollen"), axial, lateral, yaw,
+                outtake.batteryVoltage(), outtake.restingVoltage(), outtake.preset());
 //                                "t", "nectar_gate_open", "pollen_gate_open", "intake_spinning",
 //                "nectar_speed", "pollen_speed", "axial", "lateral", "yaw");
 
