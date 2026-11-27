@@ -65,6 +65,17 @@ public class Outtake {
     // 343-380 ms = 0, 1 or 2. Set longer so fewer pulses come up empty.
     public static double POLLEN_PULSE_SEC = 0.30;
     public static double POLLEN_PULSE2_SEC = 0.50;  // 0.42 let only 1 ball through (team test, Nov 24)
+    // --- Unjam: unjam(type) swings the gate past its normal open position and back for UNJAM_SEC ---
+    // Gate servos open toward 0 (nectar open 0.5 / closed 0.85, pollen open 0 / closed 0.25).
+    // Pollen's open position is already the servo's end of travel (0), so its unjam can't open
+    // further; it wiggles between 0 and 0 + UNJAM_WIGGLE instead. Raise the "past open" amount a
+    // little at a time: too far may hit the frame.
+    public static double NECTAR_UNJAM_POS = 0.40;  // 0.10 past open (0.5)
+    public static double POLLEN_UNJAM_POS = 0.0;   // servo limit
+    public static double UNJAM_WIGGLE = 0.10;      // swings between UNJAM_POS and UNJAM_POS + this
+    public static double UNJAM_SWING_SEC = 0.15;   // time at each end of the swing
+    public static double UNJAM_SEC = 1.2;          // total, then the gate closes
+
     public static double MIN_GAP_SEC = 0.6;        // from one gate opening to the next, at least...
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
     public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long...
@@ -101,6 +112,8 @@ public class Outtake {
     private double nectarFirstWait, pollenFirstWait;
     // When each flywheel last started in velocity mode (-1 = not in velocity mode).
     private double nectarSpeedSince = -1, pollenSpeedSince = -1;
+    // When the current unjam started (-1 = not unjamming).
+    private double nectarUnjamStart = -1, pollenUnjamStart = -1;
 
 
     public Outtake(HardwareMap hardwareMap, Telemetry telemetry/*, TelemetryManager panelsTelemetry*/){
@@ -218,6 +231,7 @@ public class Outtake {
      * volley is running cancels it and closes the gate.
      */
     public void fire(String type) {
+        stopUnjam(type);
         if (isFiring(type)) {
             cancelFire(type);
             return;
@@ -259,13 +273,54 @@ public class Outtake {
         close(type);
     }
 
-    /** Runs the gate pulses of any volley started with fire(). Call once per loop. */
+    /**
+     * Tries to free a stuck ball: cancels any volley, then swings the gate between UNJAM_POS
+     * (past normal open) and UNJAM_POS + UNJAM_WIGGLE for UNJAM_SEC, then closes it. Needs
+     * update() every loop. Pressing it again while unjamming stops it and closes the gate.
+     */
+    public void unjam(String type) {
+        if (isUnjamming(type)) {
+            stopUnjam(type);
+            close(type);
+            return;
+        }
+        cancelFire(type);
+        if (isNectar(type)) nectarUnjamStart = now(); else pollenUnjamStart = now();
+    }
+
+    public boolean isUnjamming(String type) {
+        return (isNectar(type) ? nectarUnjamStart : pollenUnjamStart) >= 0;
+    }
+
+    private void stopUnjam(String type) {
+        if (isNectar(type)) nectarUnjamStart = -1; else pollenUnjamStart = -1;
+    }
+
+    private void updateUnjam(String type) {
+        double start = isNectar(type) ? nectarUnjamStart : pollenUnjamStart;
+        if (start < 0) return;
+        double t = now() - start;
+        if (t >= UNJAM_SEC) {
+            stopUnjam(type);
+            close(type);
+            return;
+        }
+        double far = isNectar(type) ? NECTAR_UNJAM_POS : POLLEN_UNJAM_POS;
+        boolean atFar = ((int) (t / UNJAM_SWING_SEC)) % 2 == 0;
+        Servo gate = isNectar(type) ? nectarServo : pollenServo;
+        gate.setPosition(Math.max(0, Math.min(1, atFar ? far : far + UNJAM_WIGGLE)));
+        if (isNectar(type)) isNectarOpen = true; else isPollenOpen = true;
+    }
+
+    /** Runs the gate pulses of any volley started with fire(), and any unjam. Call once per loop. */
     public void update() {
         // kF is voltage-compensated once in startAtSpeed(); kI corrects drift after that. Gains are
         // not re-sent every loop: a voltage read under drive load set nectar's kF high and ran it
         // up to +270 ticks/s fast (meow_20261127_103518).
         updateVolley("nectar");
         updateVolley("pollen");
+        updateUnjam("nectar");
+        updateUnjam("pollen");
     }
 
     private void updateVolley(String type) {

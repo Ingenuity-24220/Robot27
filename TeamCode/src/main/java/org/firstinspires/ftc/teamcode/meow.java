@@ -96,6 +96,8 @@ public class meow extends OpMode {
         telemetry.addData("Nectar gate open", outtake.isNectarOpen);
         telemetry.addData("Pollen gate open", outtake.isPollenOpen);
         telemetry.addData("Bumpers", useVolleys ? "volley" : "hold to open");
+        telemetry.addData("Unjam (D-pad L nectar / R pollen)", outtake.isUnjamming("nectar") ? "NECTAR"
+                : outtake.isUnjamming("pollen") ? "POLLEN" : "-");
         telemetry.addData("Speed preset (D-pad Up/Down)", Outtake.PRESET_NAMES[outtake.preset()]
                 + String.format(java.util.Locale.US, "  nectar %.0f / pollen %.0f",
                 outtake.targetVelocity("nectar"), outtake.targetVelocity("pollen")));
@@ -125,6 +127,11 @@ public class meow extends OpMode {
             if (gamepad1.leftBumperWasPressed()) outtake.open("nectar");
             if (gamepad1.leftBumperWasReleased()) outtake.close("nectar");
         }
+
+        // Unjam: D-pad Left = nectar, D-pad Right = pollen (same sides as LB / RB). Swings the
+        // gate past open and back for about a second; press again to stop.
+        if (gamepad1.dpadLeftWasPressed()) outtake.unjam("nectar");
+        if (gamepad1.dpadRightWasPressed()) outtake.unjam("pollen");
 
         outtake.update();
 
