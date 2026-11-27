@@ -28,11 +28,15 @@ public class Outtake {
 
     public static double NECTAR_VELOCITY = 1768.0;     // ticks/s; 0 = use NECTAR_POWER instead
     public static double NECTAR_KP = 3.83; // 3.83
+    // kI pulls a held wheel back to target when kF is slightly off (battery reading, friction).
+    // Without it, held wheels drifted to +60..+140 over target (meow_20261127_*). Start at 0.1 x kP.
+    public static double NECTAR_KI = 0.38;
     public static double NECTAR_KF = 12.55; // 12.55
     public static double NECTAR_POWER = 0.675;     // power the tuner measures kF at (TeleOp nectar power)
 
     public static double POLLEN_VELOCITY = 1640.00; // was 1676; balls landed long (Nov 25)
     public static double POLLEN_KP = 3.54;
+    public static double POLLEN_KI = 0.35;
     public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
 
@@ -65,7 +69,6 @@ public class Outtake {
     public static double MAX_GAP_SEC = 1.0;        // ...then as soon as atSpeed(), and at most this
     public static double MAX_SPINUP_SEC = 2.5;     // first pulse waits for atSpeed() up to this long...
     public static double WARM_WAIT_SEC = 0.3;      // ...or only this long if the flywheel was already spun up
-    public static double GAIN_REFRESH_SEC = 0.5;   // re-send voltage-compensated gains this often (update())
 
     HardwareMap hardwareMap;
 
@@ -96,8 +99,8 @@ public class Outtake {
     private double nectarOpenedAt = -1, pollenOpenedAt = -1, nectarVolleyStart, pollenVolleyStart;
     // Max wait for the first ball of the current volley (MAX_SPINUP_SEC cold, WARM_WAIT_SEC warm).
     private double nectarFirstWait, pollenFirstWait;
-    // When each flywheel last started in velocity mode (-1 = not in velocity mode), and the last gain refresh.
-    private double nectarSpeedSince = -1, pollenSpeedSince = -1, lastGainRefresh = 0;
+    // When each flywheel last started in velocity mode (-1 = not in velocity mode).
+    private double nectarSpeedSince = -1, pollenSpeedSince = -1;
 
 
     public Outtake(HardwareMap hardwareMap, Telemetry telemetry/*, TelemetryManager panelsTelemetry*/){
@@ -160,11 +163,12 @@ public class Outtake {
         else { this.isPollenRunning = false; pollenSpeedSince = -1; }
     }
 
-    /** Sends the current kP and voltage-compensated kF to the hub. */
+    /** Sends the current kP, kI and voltage-compensated kF to the hub. */
     public void applyGains(String type) {
         double kP = isNectar(type) ? NECTAR_KP : POLLEN_KP;
+        double kI = isNectar(type) ? NECTAR_KI : POLLEN_KI;
         double kF = isNectar(type) ? NECTAR_KF : POLLEN_KF;
-        motor(type).setVelocityPIDFCoefficients(kP, 0, 0, compensatedF(kF));
+        motor(type).setVelocityPIDFCoefficients(kP, kI, 0, compensatedF(kF));
     }
 
     public double compensatedF(double kF) {
@@ -257,15 +261,9 @@ public class Outtake {
 
     /** Runs the gate pulses of any volley started with fire(). Call once per loop. */
     public void update() {
-        // Battery sags during a match; kF was only compensated at start. Refresh it, like the tuner does.
-        double now = now();
-        if (now - lastGainRefresh >= GAIN_REFRESH_SEC) {
-            lastGainRefresh = now;
-            if (isNectarRunning && nectarSpeedSince >= 0) applyGains("nectar");
-            // Not pollen: refreshing read the voltage while the motors were drawing current, which
-            // raised kF and ran pollen ~20-44 ticks/s fast (meow logs, Nov 25). Its kF is compensated
-            // once in startAtSpeed(), which held target before the refresh was added.
-        }
+        // kF is voltage-compensated once in startAtSpeed(); kI corrects drift after that. Gains are
+        // not re-sent every loop: a voltage read under drive load set nectar's kF high and ran it
+        // up to +270 ticks/s fast (meow_20261127_103518).
         updateVolley("nectar");
         updateVolley("pollen");
     }

@@ -19,7 +19,7 @@ import java.util.Locale;
  *   B               measure kF: runs the flywheel at its old fixed power for 3 s
  *   Y               spin up / stop at the target speed
  *   D-pad Up/Down   target speed +/- 20 ticks/s     (hold LB: kF +/- 1% instead)
- *   D-pad Right/Left  kP x1.25 / ÷1.25
+ *   D-pad Right/Left  kP x1.25 / ÷1.25          (hold LB: kI x1.25 / ÷1.25 instead)
  *   RB (hold)       open the gate to fire; shows the speed dip and recovery time
  *
  * Values edited here go straight into Outtake's static fields, so they last until the app
@@ -40,7 +40,6 @@ public class outtakeTune extends OpMode {
 
     String wheel = "nectar";
     boolean running = false;
-    double lastGainUpdate = 0;
     String message = "Press B to measure kF first";
 
     // kF measurement
@@ -61,7 +60,7 @@ public class outtakeTune extends OpMode {
         panels = PanelsTelemetry.INSTANCE.getTelemetry();
         log = new DataLogger("outtake",
                 "t", "wheel", "running", "measuring", "target", "velocity", "error",
-                "voltage", "kP", "kF", "kF_compensated", "gateOpen");
+                "voltage", "kP", "kF", "kF_compensated", "gateOpen", "kI");
     }
 
     @Override
@@ -109,8 +108,14 @@ public class outtakeTune extends OpMode {
         if (gamepad1.dpadDownWasPressed()) {
             if (lb) setKF(kF() * 0.99); else setTarget(Math.max(0, target() - TARGET_STEP));
         }
-        if (gamepad1.dpadRightWasPressed()) setKP(kP() <= 0 ? 1.0 : kP() * 1.25);
-        if (gamepad1.dpadLeftWasPressed()) setKP(kP() / 1.25);
+        if (gamepad1.dpadRightWasPressed()) {
+            if (lb) setKI(kI() <= 0 ? 0.1 * kP() : kI() * 1.25);
+            else setKP(kP() <= 0 ? 1.0 : kP() * 1.25);
+        }
+        if (gamepad1.dpadLeftWasPressed()) {
+            if (lb) setKI(kI() < 0.01 ? 0 : kI() / 1.25);
+            else setKP(kP() / 1.25);
+        }
 
         // RB held: gate open (fire). Track the speed dip and how long it takes to recover.
         if (gamepad1.right_bumper != gateOpen) {
@@ -138,12 +143,6 @@ public class outtakeTune extends OpMode {
             }
         }
 
-        // --- Live gains while running (refresh voltage compensation twice a second) ---
-        if (running && now - lastGainUpdate > 0.5) {
-            outtake.applyGains(wheel);
-            lastGainUpdate = now;
-        }
-
         // --- Stats ---
         double tol = Outtake.READY_TOLERANCE;
         if (running) {
@@ -158,7 +157,7 @@ public class outtakeTune extends OpMode {
 
         double target = running ? target() : 0;
         log.log(now, isNectar() ? 0 : 1, running ? 1 : 0, measuring ? 1 : 0, target, velocity,
-                target - velocity, voltage, kP(), kF(), outtake.compensatedF(kF()), gateOpen ? 1 : 0);
+                target - velocity, voltage, kP(), kF(), outtake.compensatedF(kF()), gateOpen ? 1 : 0, kI());
 
         // --- Telemetry (graph "target" and "velocity" in Panels) ---
         String prefix = isNectar() ? "NECTAR" : "POLLEN";
@@ -175,10 +174,12 @@ public class outtakeTune extends OpMode {
         panels.addData("Shot recovery (s)", recoverTime >= 0 ? fmt(recoverTime) : "-");
         panels.addData("Battery (V)", fmt(voltage));
         panels.addData("kP (D-pad R/L)", fmt(kP()));
+        panels.addData("kI (LB + D-pad R/L)", fmt(kI()));
         panels.addData("kF (LB + D-pad U/D)", fmt(kF()) + "  compensated " + fmt(outtake.compensatedF(kF())));
         panels.addData("Copy into Outtake.java", "");
         panels.addData("  " + prefix + "_VELOCITY", fmt(target()));
         panels.addData("  " + prefix + "_KP", fmt(kP()));
+        panels.addData("  " + prefix + "_KI", fmt(kI()));
         panels.addData("  " + prefix + "_KF", fmt(kF()));
         panels.addData("Log file", log.path());
         panels.update(telemetry);
@@ -221,6 +222,7 @@ public class outtakeTune extends OpMode {
     private double target() { return isNectar() ? Outtake.NECTAR_VELOCITY : Outtake.POLLEN_VELOCITY; }
     private double kP() { return isNectar() ? Outtake.NECTAR_KP : Outtake.POLLEN_KP; }
     private double kF() { return isNectar() ? Outtake.NECTAR_KF : Outtake.POLLEN_KF; }
+    private double kI() { return isNectar() ? Outtake.NECTAR_KI : Outtake.POLLEN_KI; }
 
     private void setTarget(double v) {
         if (isNectar()) Outtake.NECTAR_VELOCITY = v; else Outtake.POLLEN_VELOCITY = v;
@@ -234,6 +236,11 @@ public class outtakeTune extends OpMode {
 
     private void setKP(double v) {
         if (isNectar()) Outtake.NECTAR_KP = v; else Outtake.POLLEN_KP = v;
+        if (running) outtake.applyGains(wheel);
+    }
+
+    private void setKI(double v) {
+        if (isNectar()) Outtake.NECTAR_KI = v; else Outtake.POLLEN_KI = v;
         if (running) outtake.applyGains(wheel);
     }
 

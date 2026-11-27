@@ -48,6 +48,8 @@ drops; speed control shouldn't.
 | Speed when the gate opens varies by more than ±40 ticks/s | Firing before it's ready: wait on `atSpeed()` |
 | Speed overshoots, then rings after a shot | kP too high |
 | Speed recovers slowly between shots | kP too low, or shots too close together |
+| Held wheel settles steadily above/below target | kI too low (kF a little off) |
+| Speed slowly swings above and below target | kI too high |
 | Speed is steady but shots still scatter | Not the flywheel: check ball feed, ball wear, robot position |
 
 Note: `startAtSpeed` currently uses one target per flywheel (`NECTAR_VELOCITY` / `POLLEN_VELOCITY`).

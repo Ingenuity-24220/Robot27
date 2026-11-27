@@ -148,6 +148,7 @@ Needs: an encoder cable from each flywheel motor to its motor port. Use a charge
 | D-pad Up/Down | Target speed ±20 ticks/s |
 | LB + D-pad Up/Down | kF ±1% |
 | D-pad Right/Left | kP ×1.25 / ÷1.25 |
+| LB + D-pad Right/Left | kI ×1.25 / ÷1.25 (from 0, Right sets kI = 0.1 × kP) |
 | RB (hold) | Open the gate to fire |
 
 In Panels, graph `target` and `velocity`. For each flywheel:
@@ -165,8 +166,14 @@ In Panels, graph `target` and `velocity`. For each flywheel:
 4. **Shot test.** With it at speed, feed a ball and hold **RB**. Look at **Shot dip** and
    **Shot recovery**. Raise kP until recovery is fast without overshoot afterward. Recovery time
    is how long to wait between shots.
-5. **Find the right speed.** Change the target with D-pad Up/Down until shots land where you want.
-6. **Copy the three lines** under "Copy into Outtake.java" (`*_VELOCITY`, `*_KP`, `*_KF`) into
+5. **Tune kI with a held wheel.** kF supplies ~97% of the power, so kP alone can't fix a small
+   kF error: a wheel held for a while drifts and stays 60–140 ticks/s off. kI fixes that. Start at
+   0.1 × kP (LB + D-pad Right from 0), spin up, and leave it running for 10–20 s without firing.
+   - Still settles more than ~20 ticks/s off target: raise kI (LB + D-pad Right).
+   - **Overshoot** at spin-up grows, or the speed slowly swings above and below the target: kI too
+     high, lower it (LB + D-pad Left). Redo the shot test after changing it.
+6. **Find the right speed.** Change the target with D-pad Up/Down until shots land where you want.
+7. **Copy the four lines** under "Copy into Outtake.java" (`*_VELOCITY`, `*_KP`, `*_KI`, `*_KF`) into
    `util/Outtake.java`, then do the other flywheel (X).
 
 `Outtake.atSpeed("nectar")` returns true when that flywheel is within `READY_TOLERANCE` (40
@@ -178,7 +185,7 @@ of gate pulses in `util/Outtake.java`: `NECTAR_PATTERN` {1, 1, 1, 1} = four sing
 `POLLEN_PATTERN` {1, 1, 0} = one ball, one ball, then the gate held open for `HOLD_OPEN_SEC` (1.0 s) to let the last balls through. Pulse
 lengths: nectar 0.11 s for 1 ball; pollen 0.30 s for 1 ball. The next pulse
 waits at least `MIN_GAP_SEC` 0.6 s, then fires once `atSpeed()`, or after `MAX_GAP_SEC` 1.0 s
-regardless. The first ball waits for `atSpeed()` up to `MAX_SPINUP_SEC` 2.5 s from a cold start, but only `WARM_WAIT_SEC` 0.3 s if the flywheel has been holding speed for 2.5 s already. `update()` also re-sends nectar's battery-compensated gains every 0.5 s (not pollen's: that ran it fast). In `meow`, D-pad Up/Down picks the speed preset (close / medium / far: `NECTAR_PRESETS` {1768, 2100, 2380}, `POLLEN_PRESETS` {1640, 1840, 2070} in `util/Outtake.java`; medium and far start from AUTO's 0.8 / 0.9 power and need tuning at their spots). During INIT, X switches the bumpers between volleys and "gate open while held".
+regardless. The first ball waits for `atSpeed()` up to `MAX_SPINUP_SEC` 2.5 s from a cold start, but only `WARM_WAIT_SEC` 0.3 s if the flywheel has been holding speed for 2.5 s already. Battery compensation of kF happens once at spin-up; kI corrects drift after that (re-sending gains every 0.5 s ran nectar fast). In `meow`, D-pad Up/Down picks the speed preset (close / medium / far: `NECTAR_PRESETS` {1768, 2100, 2380}, `POLLEN_PRESETS` {1640, 1840, 2070} in `util/Outtake.java`; medium and far start from AUTO's 0.8 / 0.9 power and need tuning at their spots). During INIT, X switches the bumpers between volleys and "gate open while held".
 In Custom Auto Runner, X during INIT switches the team path's shooting between volleys at the
 tuned speed and the old fixed power (0.8 / 0.9) with the gates held open. Logs go to `outtake_<time>.csv`.
 
