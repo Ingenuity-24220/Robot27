@@ -148,7 +148,7 @@ Needs: an encoder cable from each flywheel motor to its motor port. Use a charge
 | D-pad Up/Down | Target speed ±20 ticks/s |
 | LB + D-pad Up/Down | kF ±1% |
 | D-pad Right/Left | kP ×1.25 / ÷1.25 |
-| LB + D-pad Right/Left | kI ×1.25 / ÷1.25 (from 0, Right sets kI = 0.1 × kP) |
+| LB + D-pad Right/Left | kI ×1.25 / ÷1.25 (from 0, Right sets kI = 0.02 × kP) |
 | RB (hold) | Open the gate to fire |
 
 In Panels, graph `target` and `velocity`. For each flywheel:
@@ -166,9 +166,9 @@ In Panels, graph `target` and `velocity`. For each flywheel:
 4. **Shot test.** With it at speed, feed a ball and hold **RB**. Look at **Shot dip** and
    **Shot recovery**. Raise kP until recovery is fast without overshoot afterward. Recovery time
    is how long to wait between shots.
-5. **Tune kI with a held wheel.** kF supplies ~97% of the power, so kP alone can't fix a small
-   kF error: a wheel held for a while drifts and stays 60–140 ticks/s off. kI fixes that. Start at
-   0.1 × kP (LB + D-pad Right from 0), spin up, and leave it running for 10–20 s without firing.
+5. **kI (optional, default 0).** Only if a wheel held for 10–20 s without firing settles more
+   than ~20 ticks/s off target. kI = 0.1 × kP wound up during spin-up and overshot pollen by
+   +140..+240 for ~8 s, so try much smaller values (LB + D-pad Right from 0, then D-pad Left).
    - Still settles more than ~20 ticks/s off target: raise kI (LB + D-pad Right).
    - **Overshoot** at spin-up grows, or the speed slowly swings above and below the target: kI too
      high, lower it (LB + D-pad Left). Redo the shot test after changing it.
@@ -185,7 +185,7 @@ of gate pulses in `util/Outtake.java`: `NECTAR_PATTERN` {1, 1, 1, 1} = four sing
 `POLLEN_PATTERN` {1, 1, 0} = one ball, one ball, then the gate held open for `HOLD_OPEN_SEC` (1.0 s) to let the last balls through. Pulse
 lengths: nectar 0.11 s for 1 ball; pollen 0.30 s for 1 ball. The next pulse
 waits at least `MIN_GAP_SEC` 0.6 s, then fires once `atSpeed()`, or after `MAX_GAP_SEC` 1.0 s
-regardless. The first ball waits for `atSpeed()` up to `MAX_SPINUP_SEC` 2.5 s from a cold start, but only `WARM_WAIT_SEC` 0.3 s if the flywheel has been holding speed for 2.5 s already. Battery compensation of kF happens once at spin-up, using the highest battery reading of the last 10 s (`REST_VOLTAGE_SEC`; a single reading sagged under drive load and ran pollen up to +620 fast); kI corrects drift after that (re-sending gains every 0.5 s ran nectar fast). In `meow`, D-pad Up/Down picks the speed preset (close / medium / far: `NECTAR_PRESETS` {1768, 2100, 2380}, `POLLEN_PRESETS` {1640, 1840, 2070} in `util/Outtake.java`; medium and far start from AUTO's 0.8 / 0.9 power and need tuning at their spots). During INIT, X switches the bumpers between volleys and "gate open while held".
+regardless. The first ball waits for `atSpeed()` up to `MAX_SPINUP_SEC` 2.5 s from a cold start, but only `WARM_WAIT_SEC` 0.3 s if the flywheel has been holding speed for 2.5 s already. Battery compensation of kF happens once at spin-up, using the highest battery reading of the last 10 s (`REST_VOLTAGE_SEC`; a single reading sagged under drive load and ran pollen up to +620 fast); kI (default 0) can correct drift after that (re-sending gains every 0.5 s ran nectar fast). In `meow`, D-pad Up/Down picks the speed preset (close / medium / far: `NECTAR_PRESETS` {1768, 2100, 2380}, `POLLEN_PRESETS` {1640, 1840, 2070} in `util/Outtake.java`; medium and far start from AUTO's 0.8 / 0.9 power and need tuning at their spots). During INIT, X switches the bumpers between volleys and "gate open while held".
 **Unjam (`meow`):** D-pad Left (nectar) / D-pad Right (pollen) cancels that volley and swings the gate past its normal open position and back (`*_UNJAM_POS` ↔ `+ UNJAM_WIGGLE`, `UNJAM_SWING_SEC` 0.15 s per side) for `UNJAM_SEC` 1.2 s, then closes it; press again to stop. Nectar goes to 0.40 (normal open 0.5). Pollen's normal open (0) is already the servo's limit, so its unjam only wiggles 0 ↔ 0.10. Keep the flywheel running so a freed ball is shot, not stuck again.
 In Custom Auto Runner, X during INIT switches the team path's shooting between volleys at the
 tuned speed and the old fixed power (0.8 / 0.9) with the gates held open. Logs go to `outtake_<time>.csv`.

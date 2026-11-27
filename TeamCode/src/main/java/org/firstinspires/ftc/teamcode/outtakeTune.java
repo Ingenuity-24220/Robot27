@@ -109,7 +109,7 @@ public class outtakeTune extends OpMode {
             if (lb) setKF(kF() * 0.99); else setTarget(Math.max(0, target() - TARGET_STEP));
         }
         if (gamepad1.dpadRightWasPressed()) {
-            if (lb) setKI(kI() <= 0 ? 0.1 * kP() : kI() * 1.25);
+            if (lb) setKI(kI() <= 0 ? 0.02 * kP() : kI() * 1.25);
             else setKP(kP() <= 0 ? 1.0 : kP() * 1.25);
         }
         if (gamepad1.dpadLeftWasPressed()) {

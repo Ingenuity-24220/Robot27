@@ -32,15 +32,16 @@ public class Outtake {
 
     public static double NECTAR_VELOCITY = 1768.0;     // ticks/s; 0 = use NECTAR_POWER instead
     public static double NECTAR_KP = 3.83; // 3.83
-    // kI pulls a held wheel back to target when kF is slightly off (battery reading, friction).
-    // Without it, held wheels drifted to +60..+140 over target (meow_20261127_*). Start at 0.1 x kP.
-    public static double NECTAR_KI = 0.38;
+    // kI = 0: at 0.38 / 0.35 the integral wound up during spin-up and held pollen +140..+240 over
+    // target for ~8 s, right when the 2nd and 3rd balls fire (meow_20261127_134800 / 135447). The
+    // held-wheel drift kI was meant to fix came from sagged voltage readings (see REST_VOLTAGE_SEC).
+    public static double NECTAR_KI = 0;
     public static double NECTAR_KF = 12.55; // 12.55
     public static double NECTAR_POWER = 0.675;     // power the tuner measures kF at (TeleOp nectar power)
 
     public static double POLLEN_VELOCITY = 1640.00; // was 1676; balls landed long (Nov 25)
     public static double POLLEN_KP = 3.54;
-    public static double POLLEN_KI = 0.35;
+    public static double POLLEN_KI = 0;
     public static double POLLEN_KF = 14.49;
     public static double POLLEN_POWER = 0.725;    // (TeleOp pollen power)
 
